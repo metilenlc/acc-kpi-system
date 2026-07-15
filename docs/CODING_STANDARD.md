@@ -1,65 +1,64 @@
 # ACC KPI Framework
 
-# Coding Standard
+# Стандарт разработки (Coding Standard)
 
-Version: 2.0.0-alpha
+Версия: 2.0.0-alpha
 
-Status: Approved
+Статус: Approved
 
-Last Updated: 2026-07-15
-
----
-
-# 1. Purpose
-
-This document defines mandatory development rules for the ACC KPI Framework.
-
-These rules apply to:
-
-- ChatGPT
-- Codex
-- GitHub Copilot
-- Human developers
-
-Compliance with this standard is mandatory.
+Последнее обновление: 2026-07-16
 
 ---
 
-# 2. General Principles
+# 1. Назначение
 
-## CS-001
+Настоящий документ определяет обязательные правила разработки проекта ACC KPI Framework.
 
-Architecture has higher priority than implementation.
+Требования данного документа обязательны для:
 
----
-
-## CS-002
-
-Code quality has higher priority than implementation speed.
-
----
-
-## CS-003
-
-Any architectural decision must be documented.
+- разработчиков;
+- ChatGPT;
+- Codex;
+- GitHub Copilot;
+- всех участников проекта.
 
 ---
 
-## CS-004
+# 2. Основные принципы
 
-Every change must be traceable.
+## CS-001. Архитектура важнее реализации
 
----
-
-## CS-005
-
-One module = one responsibility.
+Перед написанием кода необходимо определить место изменения в архитектуре проекта.
 
 ---
 
-# 3. Project Architecture
+## CS-002. Качество важнее скорости
 
-Project layers:
+Предпочтение всегда отдаётся поддерживаемому и читаемому решению.
+
+---
+
+## CS-003. Один модуль — одна ответственность
+
+Каждый модуль отвечает только за одну область системы.
+
+---
+
+## CS-004. Один источник истины
+
+Каждая сущность должна иметь только одно место определения.
+
+---
+
+## CS-005. Любое изменение должно быть воспроизводимым
+
+Все изменения должны фиксироваться в Git.
+
+---
+
+# 3. Архитектура проекта
+
+Проект состоит из следующих уровней:
 
 1. Constants
 2. Layout
@@ -70,323 +69,260 @@ Project layers:
 7. Events
 8. Business Logic
 
-Each layer has a single responsibility.
+Запрещается смешивать ответственность уровней.
 
 ---
 
 # 4. Constants
 
-Only immutable values belong in CONST.
+Модуль Constants содержит:
 
-Examples:
+- статусы;
+- названия листов;
+- бизнес-константы;
+- настройки проекта;
+- форматы;
+- цвета;
+- значения по умолчанию.
 
-- sheet names
-- statuses
-- result types
-- formats
-- colors
-- default values
+Запрещается размещать:
 
-Forbidden:
-
-- geometry
-- calculations
-- SpreadsheetApp
+- координаты;
+- вычисления;
+- обращения к SpreadsheetApp.
 
 ---
 
 # 5. Layout
 
-LAYOUT is the single source of truth for document geometry.
+LAYOUT является единственным источником информации о структуре шаблона.
 
-LAYOUT contains:
+LAYOUT содержит:
 
-- row indexes
-- column indexes
-- merged ranges
-- block sizes
-- row heights
-- headers
-- widths
-- offsets
+- строки;
+- столбцы;
+- размеры блоков;
+- смещения;
+- высоты строк;
+- ширины;
+- объединения;
+- количество элементов.
 
-Forbidden:
+Запрещается:
 
-- calculations
-- SpreadsheetApp
-- business logic
+- выполнять вычисления;
+- обращаться к SpreadsheetApp;
+- хранить бизнес-логику.
 
 ---
 
 # 6. Geometry
 
-Geometry converts LAYOUT into usable coordinates.
+Geometry преобразует описание из LAYOUT в реальные координаты.
 
-Allowed:
+Geometry может:
 
-- coordinate calculations
-- block selection
-- helper methods
+- вычислять координаты;
+- возвращать диапазоны;
+- строить адреса блоков.
 
-Forbidden:
-
-- business calculations
-- UI creation
+Geometry не выполняет бизнес-расчёты.
 
 ---
 
 # 7. Builder
 
-Builder creates document structure.
+Builder отвечает только за построение шаблона.
 
-Allowed:
+Builder может:
 
-- formatting
-- borders
-- merged cells
-- drawing
+- создавать блоки;
+- объединять ячейки;
+- устанавливать форматирование;
+- рисовать границы.
 
-Forbidden:
+Builder не выполняет:
 
-- calculations
-- business logic
+- вычисления;
+- обработку данных;
+- бизнес-логику.
 
 ---
 
 # 8. Calculations
 
-Calculation modules perform calculations only.
+Модули расчётов выполняют только вычисления.
 
-Forbidden:
+Запрещается:
 
-- hardcoded coordinates
-- formatting
-- merged cells
-- UI creation
+- использовать координаты листа;
+- форматировать ячейки;
+- создавать элементы интерфейса.
 
-Calculations use Geometry API.
+Все обращения к шаблону выполняются через Geometry.
 
 ---
 
 # 9. Navigation
 
-Navigation contains only navigation logic.
-
-No calculations.
-
-No formatting.
+Navigation содержит только функции навигации.
 
 ---
 
 # 10. Events
 
-Event modules contain only event handlers.
+Events содержит только обработчики событий.
 
-Business logic must be delegated.
-
----
-
-# 11. Magic Numbers
-
-Magic numbers are forbidden.
-
-Forbidden:
-
-```javascript
-sheet.getRange(78,27)
-```
-
-Correct:
-
-```javascript
-const sprint = getSprintLayoutV1_(month, sprint);
-
-sheet.getRange(
-    sprint.firstHypothesisRow,
-    LAYOUT.HYPOTHESIS.KPI_COLUMN
-);
-```
+Любая бизнес-логика выносится в отдельные модули.
 
 ---
 
-# 12. String Literals
+# 11. Магические числа
 
-Business literals are forbidden.
+Использование магических чисел запрещено.
 
-Forbidden:
+Запрещено:
 
-```javascript
-"Completed"
+- номера строк;
+- номера столбцов;
+- размеры блоков;
+- смещения;
+- фиксированные координаты.
 
-"Success"
+Допускаются только:
 
-"Quarter"
+- 0;
+- 1;
+- -1;
 
-"Sprint"
+когда они являются частью алгоритма, а не структуры документа.
 
-"ACC_TEMPLATE"
-```
+Во всех остальных случаях используются:
 
-Correct:
-
-```javascript
-CONST.STATUS.COMPLETED
-
-CONST.RESULT.SUCCESS
-
-CONST.SHEETS.TEMPLATE
-```
+- CONST
+- LAYOUT
+- Geometry API
 
 ---
 
-# 13. Public API
+# 12. Строковые литералы
 
-Public functions:
+Запрещается использовать строковые литералы для бизнес-сущностей.
 
-get...
+Например:
 
-build...
+- статусы;
+- типы результатов;
+- названия листов;
+- названия разделов.
 
-draw...
+Все подобные значения должны храниться в CONST.
 
-calculate...
+---
 
-update...
+# 13. Именование
 
-validate...
+Публичные функции:
 
-clear...
+- get...
+- build...
+- calculate...
+- update...
+- validate...
+- create...
+- delete...
+- sync...
+- reset...
+- clear...
 
-reset...
+Вспомогательные функции оканчиваются символом "\_".
 
-sync...
-
-Private helpers end with "_".
-
-Example:
+Пример:
 
 calculateMonthPlan()
 
-calculateMonthPlan_()
+calculateMonthPlan\_()
 
 ---
 
-# 14. Function Size
+# 14. Размер функций
 
-Recommended:
+Рекомендуемый размер функции:
 
-up to 80 lines
+до 80 строк.
 
-Maximum:
+Максимально допустимый:
 
-150 lines
+150 строк.
 
-Longer functions must be split.
-
----
-
-# 15. Documentation
-
-Every public function must contain JSDoc.
-
-Example:
-
-/**
- * Calculates sprint totals.
- *
- * @param {Sheet} sheet
- * @returns {void}
- */
+При превышении функция должна быть разделена.
 
 ---
 
-# 16. Code Style
+# 15. Документирование
 
-Use:
+Все публичные функции должны содержать JSDoc.
 
-const
-
-instead of
-
-var
-
-Prefer:
-
-const
-
-over
-
-let
-
-when possible.
-
-Indentation:
-
-2 spaces.
-
-Maximum line length:
-
-100 characters.
+Каждый модуль начинается с краткого описания назначения.
 
 ---
 
-# 17. Module Structure
+# 16. Стиль кода
 
-Each module contains:
+Используется:
 
-1. Header
-2. Public functions
-3. Private helpers
-
-Order is mandatory.
-
----
-
-# 18. Dependencies
-
-Circular dependencies are forbidden.
-
-Builder must not depend on Calculations.
-
-Calculations must not depend on Builder.
+- const вместо var;
+- let только при необходимости;
+- отступ 2 пробела;
+- длина строки до 100 символов.
 
 ---
 
-# 19. Git Workflow
+# 17. Зависимости
 
-One task = one branch.
+Запрещены циклические зависимости.
 
-One logical change = one commit.
+Builder не зависит от Calculations.
 
-Commit format:
+Calculations не зависят от Builder.
+
+---
+
+# 18. Git
+
+Каждая задача выполняется в отдельной ветке.
+
+Каждая завершённая задача оформляется отдельным коммитом.
+
+Формат сообщения:
 
 ARCH-001 Complete Layout
 
-CALC-003 New KPI algorithm
+CALC-003 New KPI calculation
 
-FIX-004 Progress calculation
+BUILD-002 Dynamic sprint rows
+
+FIX-001 Progress calculation
+
+DOC-003 Update Coding Standard
 
 ---
 
-# 20. Development Workflow
+# 19. Рабочий процесс
 
-Task
-
-↓
-
-Architecture Review
+Задача
 
 ↓
 
-Implementation
+Архитектурный анализ
 
 ↓
 
-Code Review
+Реализация
 
 ↓
 
-Testing
+Тестирование
 
 ↓
 
@@ -398,152 +334,112 @@ clasp push
 
 ↓
 
-Google Sheets Test
+Проверка в Google Sheets
 
 ↓
 
-Merge
-
-Skipping stages is forbidden.
+Завершение задачи
 
 ---
 
-# 21. Testing
+# 20. Документация
 
-Every completed task must include testing.
+Документация хранится только в каталоге docs.
 
-Minimum:
+При изменении архитектуры обновляются соответствующие документы.
 
-□ Existing functionality
-
-□ New functionality
-
-□ Regression
+Google Docs используются только как вспомогательный формат.
 
 ---
 
-# 22. Documentation
+# 21. Стандарт взаимодействия с AI
 
-Architecture changes require updates to:
+## AI-001
 
-CHANGELOG
+AI предоставляет готовые артефакты.
 
-TASKS
+Не допускаются:
 
-DECISIONS
-
-Architecture
-
----
-
-# 23. AI Development Rules
-
-AI must provide complete artifacts.
-
-Forbidden:
-
-- examples instead of final files
-- partial implementations
-- incomplete modules
-
-Required:
-
-- complete files
-- complete functions
-- complete configurations
-- complete documentation
+- шаблоны;
+- примеры вместо решения;
+- незаполненные файлы.
 
 ---
 
-# 24. AI Workflow
+## AI-002
 
-Every AI response must include:
+Перед реализацией AI выполняет анализ влияния.
 
-1. Analysis
-2. Affected files
-3. Risks
-4. Implementation
-5. Tests
-6. Commit message
-7. Documentation changes
+Обязательно указываются:
+
+- изменяемые файлы;
+- риски;
+- способ проверки.
 
 ---
 
-# 25. Architecture Review Checklist
+## AI-003
 
-Before merge verify:
-
-□ No magic numbers
-
-□ No business literals
-
-□ No duplicated code
-
-□ Layout used correctly
-
-□ Geometry used correctly
-
-□ Builder contains no calculations
-
-□ Calculations contain no geometry
-
-□ Documentation updated
+Если изменяется более 30% файла, предоставляется полная новая версия файла.
 
 ---
 
-# 26. Definition of Done
+## AI-004
 
-Task is complete only if:
-
-□ Code implemented
-
-□ Tests passed
-
-□ Documentation updated
-
-□ Git committed
-
-□ Apps Script updated
-
-□ Google Sheets tested
+Если изменяется функция, предоставляется полный листинг функции.
 
 ---
 
-# 27. AI Interaction Standard
+## AI-005
 
-AI acts as project architect.
+Каждый ответ должен содержать:
 
-Responsibilities:
-
-- architecture
-- design
-- review
-- technical debt control
-- documentation
-- planning
-
-AI does not produce temporary solutions unless explicitly requested.
-
-AI always prefers maintainable architecture.
+- путь к файлу;
+- действие;
+- полный код;
+- проверку;
+- команду Git.
 
 ---
 
-# 28. Project Philosophy
+## AI-006
 
-ACC KPI Framework is a software framework.
-
-It is not a collection of Google Apps Script files.
-
-Every decision must improve:
-
-- maintainability
-- readability
-- scalability
-- testability
-- extensibility
-
-Long-term quality has higher priority than short-term implementation speed.
+Любой новый файл предоставляется полностью готовым к использованию.
 
 ---
 
-END OF DOCUMENT
+# 22. Definition of Done
+
+Задача считается завершённой только если:
+
+☑ Код реализован.
+
+☑ Проверка выполнена.
+
+☑ Документация обновлена (если требуется).
+
+☑ Commit выполнен.
+
+☑ Изменения опубликованы через clasp (если требуется).
+
+☑ Проверка в Google Sheets выполнена.
+
+---
+
+# 23. Философия проекта
+
+ACC KPI Framework является программным продуктом.
+
+Любое изменение должно улучшать:
+
+- читаемость;
+- сопровождаемость;
+- масштабируемость;
+- тестируемость;
+- расширяемость.
+
+Долгосрочное качество проекта всегда имеет приоритет над скоростью реализации.
+
+---
+
+Конец документа.
