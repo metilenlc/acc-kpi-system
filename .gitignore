@@ -1,0 +1,14 @@
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+
+# Windows
+Thumbs.db
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

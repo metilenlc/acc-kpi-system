@@ -1,0 +1,28 @@
+{
+  "timeZone": "Europe/Moscow",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "buildCalendar_2025_2030",
+      "functionName": "buildCalendar_2025_2030"
+    }, {
+      "menuName": "myFunction",
+      "functionName": "myFunction"
+    }, {
+      "menuName": "buildAccTemplateMicrogrid",
+      "functionName": "buildAccTemplateMicrogrid"
+    }, {
+      "menuName": "buildMonthlySprintCalendar_2025_2030",
+      "functionName": "buildMonthlySprintCalendar_2025_2030"
+    }, {
+      "menuName": "buildAccTemplateV3_061",
+      "functionName": "buildAccTemplateV3_061"
+    }, {
+      "menuName": "buildMonth1SprintV1",
+      "functionName": "buildMonth1SprintV1"
+    }]
+  }
+}
