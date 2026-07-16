@@ -481,7 +481,7 @@ function findCurrentAccountV1() {
     return;
   }
 
-  const names = reg.getRange(2, 2, lastRow - 1, 1).getValues();
+  const names = reg.getRange(2, 3, lastRow - 1, 1).getValues();
 
   for (let i = 0; i < names.length; i++) {
 
