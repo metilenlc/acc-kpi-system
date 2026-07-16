@@ -1,32 +1,6 @@
 let KPI_DICTIONARY_V1 = null;
 
 /**
- * Возвращает активный рабочий лист аккаунта.
- */
-function getActiveAccountSheetV1_() {
-
-  const sheet = SpreadsheetApp
-    .getActiveSpreadsheet()
-    .getActiveSheet();
-
-  const name = sheet.getName();
-
-  if (name === "ACC_TEMPLATE") {
-    return sheet;
-  }
-
-  if (name === "ACCOUNTS") {
-    throw new Error("Откройте лист аккаунта.");
-  }
-
-  if (!name.startsWith("ACC_")) {
-    throw new Error(`Лист "${name}" не является листом аккаунта.`);
-  }
-
-  return sheet;
-}
-
-/**
  * Открывает лист справочника KPI.
  */
 function openKpiDirectoryV1() {
