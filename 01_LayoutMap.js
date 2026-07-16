@@ -327,7 +327,7 @@ const LAYOUT = {
     KPI: {
       FIRST_ROW: 2,
       FIRST_COLUMN: 18,
-      COLUMN_COUNT: 8,
+      COLUMN_COUNT: 7,
     },
   },
 };
