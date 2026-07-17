@@ -92,7 +92,7 @@ function setupDropdownsV1(targetSheet) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = targetSheet || getActiveAccountSheetV1_();
 
-  const KPI_COUNT = 12;
+  const KPI_COUNT = LAYOUT.MONTH.KPI_COUNT;
 
   const COL_KPI = 1;
   const COL_SPRINT_SELECTOR = 11;
@@ -184,7 +184,7 @@ function setupDropdownsV1(targetSheet) {
 
     sheet
       .getRange(
-        monthLayout.kpiRow,
+        monthLayout.firstKpiDataRow,
         COL_KPI,
         KPI_COUNT,
         1

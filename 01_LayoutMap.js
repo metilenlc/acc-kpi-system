@@ -31,6 +31,22 @@ const LAYOUT = {
     COLUMN_COUNT: 90,
   },
 
+  STYLE: {
+    FONT: {
+      FAMILY: 'Calibri',
+      DEFAULT_SIZE: 12,
+      SHEET_TITLE_SIZE: 18,
+      QUARTER_MONTH_TITLE_SIZE: 16,
+      SECTION_TITLE_SIZE: 14,
+      SPRINT_TITLE_SIZE: 14,
+    },
+
+    ROW_HEIGHTS: {
+      EMPTY: 28,
+      THIN: 6,
+    },
+  },
+
   /**
    * Паспорт аккаунта.
    */
@@ -78,36 +94,26 @@ const LAYOUT = {
   MONTH: {
     COUNT: 3,
 
-    FIRST_ROW: 43,
-    HEIGHT: 108,
+    FIRST_ROW: 44,
 
     TITLE_HEIGHT: 1,
 
-    KPI_OFFSET: 5,
+    KPI_OFFSET: 2,
+    KPI_HEADER_OFFSET_FROM_KPI_TITLE: 1,
+    KPI_DATA_OFFSET_FROM_KPI_TITLE: 2,
+    KPI_COUNT: 12,
     KPI_HEIGHT: 12,
 
     SUMMARY_OFFSET: 17,
     SUMMARY_HEIGHT: 6,
 
-    SPRINT_OFFSET: 35,
-
-    /**
-     * Временные ключи совместимости.
-     *
-     * Используются текущими функциями и будут удалены после перехода
-     * всех модулей на Geometry API.
-     */
-    SUMMARY: {
-      FIRST_ROW: 63,
+    SUMMARY_ROW_OFFSETS: {
+      FIRST_VALUE: 2,
+      PROGRESS: 6,
     },
 
-    HYPOTHESIS: {
-      FIRST_ROW: 78,
-    },
-
-    SPRINT: {
-      FIRST_TOTAL_ROW: 84,
-    },
+    SPRINT_OFFSET: 27,
+    TRAILING_ROWS: 6,
   },
 
   /**
@@ -115,7 +121,7 @@ const LAYOUT = {
    */
   SPRINT: {
     COUNT: 5,
-    HYPOTHESIS_COUNT: 4,
+    HYPOTHESIS_COUNT: 6,
 
     HEADER_ROWS: 7,
     SUMMARY_ROWS: 4,
@@ -127,6 +133,13 @@ const LAYOUT = {
       PROGRESS: 4,
       HYPOTHESIS_HEADER: 6,
       FIRST_HYPOTHESIS: 7,
+    },
+
+    SUMMARY_OFFSETS: {
+      GAP: 1,
+      HEADER: 2,
+      VALUES: 3,
+      BOTTOM: 4,
     },
 
     ROW_HEIGHTS: {

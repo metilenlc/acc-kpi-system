@@ -144,7 +144,17 @@ function buildDeveloperMenuV1_() {
     .addItem('Подключить списки', 'setupDropdownsV1')
     .addItem('Удалить списки', 'clearDropdownsOnActiveSheet')
     .addSeparator()
-    .addItem('Создать все аккаунты', 'createAccountsV1')
+    .addItem('Тест: создать один лист аккаунта', 'createNextAccountSheetTestV1')
+    .addItem('Пакет: создать листы аккаунтов', 'createAccountSheetsBatchV1')
+    .addItem('Удалить все листы аккаунтов', 'deleteAllAccountSheetsV1')
+    .addSeparator()
+    .addSubMenu(
+      ui.createMenu('Расчёты')
+        .addItem(
+          'Распределить KPI по всем аккаунтам',
+          'distributeKpiPlansForAllAccountsBatchV1'
+        )
+    )
     .addSeparator()
     .addItem('Группировка квартала', 'setupQuarterKpiSummaryGroupV1')
     .addItem('Группировки месяцев', 'setupMonthGroupsV1')

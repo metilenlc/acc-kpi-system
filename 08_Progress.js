@@ -35,16 +35,30 @@ function insertProgressBarV1_(sheet, percentCell, barRange) {
 function clearOldSprintProgressBarsV1() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ACC_TEMPLATE');
 
-  const progressRows = [
-    54, 68, 82, 96, 110,
-    155, 169, 183, 197, 211,
-    256, 270, 284, 298, 312
-  ];
+  for (
+    let monthIndex = 0;
+    monthIndex < LAYOUT.MONTH.COUNT;
+    monthIndex++
+  ) {
+    for (
+      let sprintIndex = 0;
+      sprintIndex < LAYOUT.SPRINT.COUNT;
+      sprintIndex++
+    ) {
+      const progressRow =
+        getSprintLayoutV1_(monthIndex, sprintIndex).progressRow;
+      const bar = LAYOUT.SPRINT.PROGRESS.BAR;
+      const barRange = sheet.getRange(
+        progressRow,
+        bar.START_COLUMN,
+        1,
+        bar.END_COLUMN - bar.START_COLUMN + 1
+      );
 
-  progressRows.forEach(r => {
-    sheet.getRange(r, 49, 1, 60).breakApart();     // AW:DD
-    sheet.getRange(r, 49, 1, 60).clearContent();   // AW:DD
-  });
+      barRange.breakApart();
+      barRange.clearContent();
+    }
+  }
 }
 
 

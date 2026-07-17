@@ -33,3 +33,20 @@ function getActiveAccountSheetV1_() {
 
   return sheet;
 }
+
+function requireAdmin_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const activeEmail = String(
+    Session.getActiveUser().getEmail() || ''
+  ).trim().toLowerCase();
+  const owner = ss.getOwner();
+  const ownerEmail = String(
+    owner && owner.getEmail ? owner.getEmail() : ''
+  ).trim().toLowerCase();
+
+  if (!activeEmail || !ownerEmail || activeEmail !== ownerEmail) {
+    throw new Error(
+      'Операция доступна только владельцу таблицы с подтверждённым email.'
+    );
+  }
+}

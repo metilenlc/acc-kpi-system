@@ -36,8 +36,6 @@ const PASSPORT = {
  * @deprecated Использовать LAYOUT.HYPOTHESIS и Geometry API.
  */
 const HYP = {
-  ROWS_PER_SPRINT: 4,
-
   COL: {
     KPI: 27,
     PLAN: 43,
@@ -57,7 +55,6 @@ const HYP = {
  */
 const SPRINT = {
   COUNT: 5,
-  STEP_ROWS: 15,
   HEADER_HEIGHT: 32,
   HEADER_INPUT_HEIGHT: 28,
   HYPOTHESIS_HEIGHT: 48,
@@ -94,6 +91,41 @@ const SHEETS = {
   ACCOUNTS: "ACCOUNTS",
   TEMPLATE: "ACC_TEMPLATE",
   ACCOUNT_PREFIX: "ACC_",
+};
+
+const ACCOUNT_REGISTRY = {
+  HEADER_ROW: 1,
+  FIRST_DATA_ROW: 2,
+  COLUMN_COUNT: 15,
+  COLUMNS: {
+    ID: 1,
+    SHEET_ID: 2,
+    SHEET_NAME: 3,
+    SOCIAL: 4,
+    ACCOUNT: 5,
+    MANAGER: 6,
+    NOTE: 7,
+    YEAR: 8,
+    QUARTER: 9,
+    STATUS: 10,
+    URL: 11,
+    CLIENT: 12,
+    CREATED_AT: 13,
+    UPDATED_AT: 14,
+    ERROR: 15,
+  },
+};
+
+const ACCOUNT_GENERATOR = {
+  MAX_RUNTIME_MS: 5.25 * 60 * 1000,
+  MAX_CREATED_PER_RUN: 5,
+  MAX_SHEET_NAME_LENGTH: 100,
+};
+
+const KPI_DISTRIBUTION_BATCH = {
+  CURSOR_PROPERTY: 'KPI_DISTRIBUTION_NEXT_ROW',
+  MAX_RUNTIME_MS: 5.25 * 60 * 1000,
+  MAX_PROCESSED_PER_RUN: 5,
 };
 
 /* ==========================================================================
@@ -137,7 +169,7 @@ const STATUS = {
  * Допустимые результаты гипотез.
  */
 const RESULT = {
-  SUCCESS: "Успешно",
-  PARTIAL: "Частично успешно",
-  FAILED: "Неуспешно",
+  SUCCESS: "Успешная",
+  PARTIAL: "Частично успешная",
+  FAILED: "Неуспешная",
 };
