@@ -3,6 +3,8 @@
 */
 
 //
+const ACC_TEMPLATE_MAIN_FONT_SIZE = LAYOUT.STYLE.FONT.DEFAULT_SIZE;
+
 function buildAccTemplateV1_Layout() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('ACC_TEMPLATE');
@@ -10,6 +12,8 @@ function buildAccTemplateV1_Layout() {
   if (!sheet) {
     throw new Error('Лист ACC_TEMPLATE не найден');
   }
+
+  clearRowGroupsV1_(sheet);
 
   const DARK = '#0B5D1E';
   const LIGHT = '#EEF7EA';
@@ -23,9 +27,7 @@ function buildAccTemplateV1_Layout() {
   const TITLE_HEIGHT = 36;
 
   const QUARTER_KPI_START_ROW = 19;
-  const MONTH_1_START_ROW = 34;
-  const MONTH_COUNT = 3;
-  const MONTH_GAP_ROWS = 3;
+  const MONTH_COUNT = LAYOUT.MONTH.COUNT;
 
   // Полная очистка листа
   sheet.clear();
@@ -64,8 +66,8 @@ function buildAccTemplateV1_Layout() {
 
   sheet
     .getRange(1, 1, TOTAL_ROWS, TOTAL_COLS)
-    .setFontFamily('Arial')
-    .setFontSize(10)
+    .setFontFamily(LAYOUT.STYLE.FONT.FAMILY)
+    .setFontSize(ACC_TEMPLATE_MAIN_FONT_SIZE)
     .setBackground(WHITE)
     .setVerticalAlignment('middle')
     .setWrap(true);
@@ -95,7 +97,7 @@ function buildAccTemplateV1_Layout() {
     DARK,
     'white',
     true,
-    16
+    LAYOUT.STYLE.FONT.SHEET_TITLE_SIZE
   );
 
   sheet.setRowHeight(TITLE_ROW, TITLE_HEIGHT);
@@ -113,7 +115,8 @@ function buildAccTemplateV1_Layout() {
     LIGHT,
     BORDER,
     'План квартал',
-    'Факт квартал'
+    'Факт квартал',
+    LAYOUT.STYLE.FONT.QUARTER_MONTH_TITLE_SIZE
   );
 
   // Итоги квартала под квартальными KPI
@@ -126,23 +129,30 @@ function buildAccTemplateV1_Layout() {
   );
 
   // Месяцы
-  let monthStart = quarterSummaryEndRow + 2;
-
   for (let monthNumber = 1; monthNumber <= MONTH_COUNT; monthNumber++) {
-    monthStart = buildMonthBlock_(
+    const monthLayout = getMonthLayoutV1_(monthNumber - 1);
+
+    buildMonthBlock_(
       sheet,
-      monthStart,
+      monthLayout.monthRow,
       monthNumber,
       kpis,
       DARK,
       LIGHT,
       BORDER
     );
-
-    monthStart += MONTH_GAP_ROWS;
   }
 
-    sheet.setFrozenRows(3);
+  applyTemplateSpacerRowHeightsV1_(sheet);
+
+  sheet.setFrozenRows(1);
+  sheet.setFrozenColumns(0);
+
+  setupQuarterKpiSummaryGroupV1(sheet, true);
+  setupMonthGroupsV1(sheet, true);
+  setupMonthKpiSummaryGroupsV1(sheet, true);
+  setupSprintRowGroupsV1(sheet, true);
+  sheet.expandRowGroupsUpToDepth(1);
 
   SpreadsheetApp.flush();
 
@@ -155,29 +165,34 @@ function buildAccTemplateV1_Layout() {
 
 //
 function buildPassport_(sheet, DARK, LIGHT, BORDER) {
-  mergeText(sheet, 3, 1, 3, 40, 'ПАСПОРТ АККАУНТА', DARK, 'white', true, 10);
+  mergeText(sheet, 3, 1, 3, 40, 'ПАСПОРТ АККАУНТА', DARK, 'white', true, LAYOUT.STYLE.FONT.SECTION_TITLE_SIZE);
 
   const fields = ['Аккаунт', 'Соцсеть', 'Ответственный', 'Год', 'Квартал', 'Статус'];
 
   for (let i = 0; i < fields.length; i++) {
     const r = 4 + i;
 
-    mergeText(sheet, r, 1, r, 12, fields[i], LIGHT, 'black', true, 10);
+    mergeText(sheet, r, 1, r, 12, fields[i], LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
     mergeEmpty(sheet, r, 13, r, 40);
+    if (i < 4) {
+      sheet
+        .getRange(r, 13, 1, 28)
+        .setHorizontalAlignment('left');
+    }
     sheet.setRowHeight(r, 28);
   }
 
   sheet.getRange(3, 1, 7, 40)
     .setBorder(true, true, true, true, true, true, BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
-  mergeText(sheet, 3, 42, 3, 90, 'ЦЕЛЬ КВАРТАЛА', DARK, 'white', true, 10);
+  mergeText(sheet, 3, 42, 3, 90, 'ЦЕЛЬ КВАРТАЛА', DARK, 'white', true, LAYOUT.STYLE.FONT.SECTION_TITLE_SIZE);
   mergeEmpty(sheet, 4, 42, 10, 90);
   sheet.getRange(4, 42, 7, 49).setVerticalAlignment('top');
 
   sheet.getRange(3, 42, 8, 49)
     .setBorder(true, true, true, true, true, true, BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
-  mergeText(sheet, 12, 42, 12, 90, 'КОММЕНТАРИИ', DARK, 'white', true, 10);
+  mergeText(sheet, 12, 42, 12, 90, 'КОММЕНТАРИИ', DARK, 'white', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
   mergeEmpty(sheet, 13, 42, 15, 90);
   sheet.getRange(13, 42, 3, 49).setVerticalAlignment('top');
 
@@ -185,14 +200,14 @@ function buildPassport_(sheet, DARK, LIGHT, BORDER) {
     .setBorder(true, true, true, true, true, true, BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
   sheet.getRange(17, 1, 1, 90).merge().setBackground(DARK);
-  sheet.setRowHeight(17, 10);
+  sheet.setRowHeight(17, LAYOUT.STYLE.ROW_HEIGHTS.THIN);
 }
 
 //
-function buildKpiBlock_(sheet, startRow, title, kpis, DARK, LIGHT, BORDER, planTitle, factTitle) {
+function buildKpiBlock_(sheet, startRow, title, kpis, DARK, LIGHT, BORDER, planTitle, factTitle, titleFontSize) {
 
   const TOTAL_COLS = 90;
-  const KPI_ROWS = 12;
+  const KPI_ROWS = LAYOUT.MONTH.KPI_COUNT;
 
   const COL_KPI_START = 1;
   const COL_KPI_END = 32;
@@ -216,14 +231,14 @@ function buildKpiBlock_(sheet, startRow, title, kpis, DARK, LIGHT, BORDER, planT
   const HEADER_HEIGHT = 32;
   const ROW_HEIGHT = 40;
 
-  mergeText(sheet, startRow, 1, startRow, TOTAL_COLS, title, DARK, 'white', true, 10);
+  mergeText(sheet, startRow, 1, startRow, TOTAL_COLS, title, DARK, 'white', true, titleFontSize || ACC_TEMPLATE_MAIN_FONT_SIZE);
   sheet.setRowHeight(startRow, HEADER_HEIGHT);
 
-  mergeText(sheet, startRow + 1, COL_KPI_START, startRow + 1, COL_KPI_END, 'KPI', LIGHT, 'black', true, 10);
-  mergeText(sheet, startRow + 1, COL_PLAN_START, startRow + 1, COL_PLAN_END, planTitle, LIGHT, 'black', true, 10);
-  mergeText(sheet, startRow + 1, COL_FACT_START, startRow + 1, COL_FACT_END, factTitle, LIGHT, 'black', true, 10);
-  mergeText(sheet, startRow + 1, COL_PERCENT_START, startRow + 1, COL_PERCENT_END, '%', LIGHT, 'black', true, 10);
-  mergeText(sheet, startRow + 1, COL_BAR_START, startRow + 1, COL_BAR_END, 'Прогресс', LIGHT, 'black', true, 10);
+  mergeText(sheet, startRow + 1, COL_KPI_START, startRow + 1, COL_KPI_END, 'KPI', LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
+  mergeText(sheet, startRow + 1, COL_PLAN_START, startRow + 1, COL_PLAN_END, planTitle, LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
+  mergeText(sheet, startRow + 1, COL_FACT_START, startRow + 1, COL_FACT_END, factTitle, LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
+  mergeText(sheet, startRow + 1, COL_PERCENT_START, startRow + 1, COL_PERCENT_END, '%', LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
+  mergeText(sheet, startRow + 1, COL_BAR_START, startRow + 1, COL_BAR_END, 'Прогресс', LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
   mergeEmpty(sheet, startRow + 1, COL_RESERVE_START, startRow + 1, COL_RESERVE_END);
 
   sheet.setRowHeight(startRow + 1, HEADER_HEIGHT);
@@ -276,7 +291,7 @@ function buildMonthBlock_(
     DARK,
     'white',
     true,
-    14
+    LAYOUT.STYLE.FONT.QUARTER_MONTH_TITLE_SIZE
   );
 
   sheet.setRowHeight(startRow, MONTH_TITLE_HEIGHT);
@@ -314,6 +329,7 @@ function buildMonthBlock_(
     buildSprintCard_(
       sheet,
       sprintLayout.sprintTop,
+      monthNumber,
       sprintIndex + 1,
       DARK,
       LIGHT,
@@ -326,7 +342,7 @@ function buildMonthBlock_(
     LAYOUT.SPRINT.COUNT - 1
   );
 
-  return lastSprint.bottomGapRow + 3;
+  return lastSprint.bottomGapRow;
 }
 
 /**
@@ -348,6 +364,7 @@ function buildMonthBlock_(
 function buildSprintCard_(
   sheet,
   startRow,
+  monthNumber,
   sprintNumber,
   DARK,
   LIGHT,
@@ -355,15 +372,8 @@ function buildSprintCard_(
 ) {
   const TOTAL_COLS = 90;
 
-  const TITLE_ROW_HEIGHT = 32;
-  const HEADER_ROW_HEIGHT = 28;
-  const SEPARATOR_ROW_HEIGHT = 6;
-  const HYP_HEADER_ROW_HEIGHT = 32;
-  const HYP_ROW_HEIGHT = 48;
-  const SUMMARY_TOP_GAP_HEIGHT = 6;
-  const SUMMARY_HEADER_ROW_HEIGHT = 26;
-  const SUMMARY_VALUE_ROW_HEIGHT = 28;
-  const BOTTOM_GAP_HEIGHT = 28;
+  const rowHeights = LAYOUT.SPRINT.ROW_HEIGHTS;
+  const rowOffsets = LAYOUT.SPRINT.ROW_OFFSETS;
 
   const COL_SPRINT_LABEL_START = 1;
   const COL_SPRINT_LABEL_END = 10;
@@ -450,20 +460,20 @@ function buildSprintCard_(
     1,
     startRow,
     TOTAL_COLS,
-    'СПРИНТ №' + sprintNumber,
+    `СПРИНТ ${monthNumber}.${sprintNumber}`,
     DARK,
     'white',
     true,
-    10
+    LAYOUT.STYLE.FONT.SPRINT_TITLE_SIZE
   );
 
   sheet.setRowHeight(
     startRow,
-    TITLE_ROW_HEIGHT
+    rowHeights.TITLE
   );
 
   // Выбор спринта и дата начала
-  const selectorRow = startRow + 2;
+  const selectorRow = startRow + rowOffsets.SELECTOR;
 
   mergeText(
     sheet,
@@ -475,7 +485,7 @@ function buildSprintCard_(
     LIGHT,
     'black',
     true,
-    10
+    ACC_TEMPLATE_MAIN_FONT_SIZE
   );
 
   mergeEmpty(
@@ -504,7 +514,7 @@ function buildSprintCard_(
     LIGHT,
     'black',
     true,
-    10
+    ACC_TEMPLATE_MAIN_FONT_SIZE
   );
 
   mergeEmpty(
@@ -525,17 +535,17 @@ function buildSprintCard_(
 
   sheet.setRowHeight(
     selectorRow,
-    HEADER_ROW_HEIGHT
+    rowHeights.SELECTOR
   );
 
   // Разделитель
   sheet.setRowHeight(
-    startRow + 3,
-    SEPARATOR_ROW_HEIGHT
+    startRow + rowOffsets.SEPARATOR,
+    LAYOUT.STYLE.ROW_HEIGHTS.THIN
   );
 
   // Прогресс и дата окончания
-  const progressRow = startRow + 4;
+  const progressRow = startRow + rowOffsets.PROGRESS;
 
   mergeText(
     sheet,
@@ -547,7 +557,7 @@ function buildSprintCard_(
     LIGHT,
     'black',
     true,
-    10
+    ACC_TEMPLATE_MAIN_FONT_SIZE
   );
 
   mergeEmpty(
@@ -592,7 +602,7 @@ function buildSprintCard_(
     LIGHT,
     'black',
     true,
-    10
+    ACC_TEMPLATE_MAIN_FONT_SIZE
   );
 
   mergeEmpty(
@@ -613,11 +623,12 @@ function buildSprintCard_(
 
   sheet.setRowHeight(
     progressRow,
-    HEADER_ROW_HEIGHT
+    rowHeights.PROGRESS
   );
 
   // Заголовок таблицы гипотез
-  const hypHeaderRow = startRow + 6;
+  const hypHeaderRow =
+    startRow + rowOffsets.HYPOTHESIS_HEADER;
   let currentCol = 1;
 
   HYP_HEADERS.forEach((header, index) => {
@@ -633,7 +644,7 @@ function buildSprintCard_(
       LIGHT,
       'black',
       true,
-      10
+      ACC_TEMPLATE_MAIN_FONT_SIZE
     );
 
     currentCol += width;
@@ -641,7 +652,7 @@ function buildSprintCard_(
 
   sheet.setRowHeight(
     hypHeaderRow,
-    HYP_HEADER_ROW_HEIGHT
+    rowHeights.HYPOTHESIS_HEADER
   );
 
   // Строки гипотез
@@ -672,7 +683,7 @@ function buildSprintCard_(
 
     sheet.setRowHeight(
       row,
-      HYP_ROW_HEIGHT
+      rowHeights.HYPOTHESIS
     );
   }
 
@@ -695,62 +706,78 @@ function buildSprintCard_(
     );
 
   // Отступ перед итогами
-  const summaryGapRow = lastHypRow + 1;
+  const summaryOffsets = LAYOUT.SPRINT.SUMMARY_OFFSETS;
+  const summaryGapRow =
+    lastHypRow + summaryOffsets.GAP;
 
   sheet.setRowHeight(
     summaryGapRow,
-    SUMMARY_TOP_GAP_HEIGHT
+    LAYOUT.STYLE.ROW_HEIGHTS.THIN
   );
 
   // Итоги спринта
-  const summaryHeaderRow = summaryGapRow + 1;
-  const summaryValueRow = summaryHeaderRow + 1;
+  const summaryHeaderRow =
+    lastHypRow + summaryOffsets.HEADER;
+  const summaryValueRow =
+    lastHypRow + summaryOffsets.VALUES;
 
   summaryConfig.forEach(item => {
     mergeText(
       sheet,
       summaryHeaderRow,
-      item.range.START_COL,
+      item.range.START_COLUMN,
       summaryHeaderRow,
-      item.range.END_COL,
+      item.range.END_COLUMN,
       item.title,
       LIGHT,
       'black',
       true,
-      10
+      ACC_TEMPLATE_MAIN_FONT_SIZE
     );
 
     mergeEmpty(
       sheet,
       summaryValueRow,
-      item.range.START_COL,
+      item.range.START_COLUMN,
       summaryValueRow,
-      item.range.END_COL
+      item.range.END_COLUMN
     );
 
     setInputBorder_(
       sheet,
       summaryValueRow,
-      item.range.START_COL,
-      item.range.END_COL,
+      item.range.START_COLUMN,
+      item.range.END_COLUMN,
       BORDER
     );
+
+    sheet
+      .getRange(
+        summaryValueRow,
+        item.range.START_COLUMN,
+        1,
+        item.range.END_COLUMN -
+          item.range.START_COLUMN +
+          1
+      )
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
   });
 
   sheet.setRowHeight(
     summaryHeaderRow,
-    SUMMARY_HEADER_ROW_HEIGHT
+    rowHeights.SUMMARY_HEADER
   );
 
   sheet.setRowHeight(
     summaryValueRow,
-    SUMMARY_VALUE_ROW_HEIGHT
+    rowHeights.SUMMARY_VALUE
   );
 
   // Пустая строка между спринтами
   sheet.setRowHeight(
-    summaryValueRow + 1,
-    BOTTOM_GAP_HEIGHT
+    lastHypRow + summaryOffsets.BOTTOM,
+    LAYOUT.STYLE.ROW_HEIGHTS.EMPTY
   );
 }
 
@@ -784,7 +811,7 @@ function buildSummaryBlock_(sheet, startRow, title, progressTitle, DARK, LIGHT, 
 
   const TITLE_HEIGHT = 26;
   const DATA_ROW_HEIGHT = 28;
-  const GAP_HEIGHT = 8;
+  const GAP_HEIGHT = LAYOUT.STYLE.ROW_HEIGHTS.EMPTY;
 
   const COL_LEFT_LABEL_START = 8;
   const COL_LEFT_LABEL_END = 18;
@@ -803,7 +830,7 @@ function buildSummaryBlock_(sheet, startRow, title, progressTitle, DARK, LIGHT, 
   const COL_PROGRESS_BAR_START = 23;
   const COL_PROGRESS_BAR_END = 42;
 
-  mergeText(sheet, startRow, 1, startRow, TOTAL_COLS, title, DARK, 'white', true, 10);
+  mergeText(sheet, startRow, 1, startRow, TOTAL_COLS, title, DARK, 'white', true, LAYOUT.STYLE.FONT.SECTION_TITLE_SIZE);
   sheet.setRowHeight(startRow, TITLE_HEIGHT);
 
   sheet.setRowHeight(startRow + 1, GAP_HEIGHT);
@@ -823,11 +850,11 @@ function buildSummaryBlock_(sheet, startRow, title, progressTitle, DARK, LIGHT, 
   for (let i = 0; i < 3; i++) {
     const r = startRow + 2 + i;
 
-    mergeText(sheet, r, COL_LEFT_LABEL_START, r, COL_LEFT_LABEL_END, leftItems[i], LIGHT, 'black', true, 10);
+    mergeText(sheet, r, COL_LEFT_LABEL_START, r, COL_LEFT_LABEL_END, leftItems[i], LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
     mergeEmpty(sheet, r, COL_LEFT_VALUE_START, r, COL_LEFT_VALUE_END);
     setInputBorder_(sheet, r, COL_LEFT_VALUE_START, COL_LEFT_VALUE_END, BORDER);
 
-    mergeText(sheet, r, COL_RIGHT_LABEL_START, r, COL_RIGHT_LABEL_END, rightItems[i], LIGHT, 'black', true, 10);
+    mergeText(sheet, r, COL_RIGHT_LABEL_START, r, COL_RIGHT_LABEL_END, rightItems[i], LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
     mergeEmpty(sheet, r, COL_RIGHT_VALUE_START, r, COL_RIGHT_VALUE_END);
     setInputBorder_(sheet, r, COL_RIGHT_VALUE_START, COL_RIGHT_VALUE_END, BORDER);
 
@@ -836,7 +863,7 @@ function buildSummaryBlock_(sheet, startRow, title, progressTitle, DARK, LIGHT, 
 
   sheet.setRowHeight(startRow + 5, GAP_HEIGHT);
 
-  mergeText(sheet, startRow + 6, COL_PROGRESS_LABEL_START, startRow + 6, COL_PROGRESS_LABEL_END, progressTitle, LIGHT, 'black', true, 10);
+  mergeText(sheet, startRow + 6, COL_PROGRESS_LABEL_START, startRow + 6, COL_PROGRESS_LABEL_END, progressTitle, LIGHT, 'black', true, ACC_TEMPLATE_MAIN_FONT_SIZE);
   mergeEmpty(sheet, startRow + 6, COL_PROGRESS_PERCENT_START, startRow + 6, COL_PROGRESS_PERCENT_END);
   setInputBorder_(sheet, startRow + 6, COL_PROGRESS_PERCENT_START, COL_PROGRESS_PERCENT_END, BORDER);
 
@@ -848,3 +875,73 @@ function buildSummaryBlock_(sheet, startRow, title, progressTitle, DARK, LIGHT, 
   return startRow + 8;
 }
 
+function applyTemplateSpacerRowHeightsV1_(sheet) {
+  const emptyHeight = LAYOUT.STYLE.ROW_HEIGHTS.EMPTY;
+  const thinHeight = LAYOUT.STYLE.ROW_HEIGHTS.THIN;
+  const quarterKpiTitleRow = LAYOUT.QUARTER.KPI.ROW - 1;
+  const emptyRows = new Set([
+    LAYOUT.SHEET.FIRST_ROW + 1,
+    LAYOUT.PASSPORT.LAST_ROW + 2,
+    quarterKpiTitleRow - 3,
+    quarterKpiTitleRow - 1,
+  ]);
+  const thinRows = new Set([quarterKpiTitleRow - 2]);
+
+  const quarterKpiBottomGapRow =
+    LAYOUT.QUARTER.KPI.ROW + LAYOUT.QUARTER.KPI_COUNT + 1;
+  const quarterSummaryTitleRow = LAYOUT.QUARTER.SUMMARY.ROW - 2;
+
+  emptyRows.add(quarterKpiBottomGapRow);
+  emptyRows.add(quarterSummaryTitleRow + 1);
+  emptyRows.add(quarterSummaryTitleRow + 5);
+
+  for (
+    let row = quarterSummaryTitleRow + 7;
+    row < LAYOUT.MONTH.FIRST_ROW;
+    row++
+  ) {
+    emptyRows.add(row);
+  }
+
+  for (let monthIndex = 0; monthIndex < LAYOUT.MONTH.COUNT; monthIndex++) {
+    const month = getMonthLayoutV1_(monthIndex);
+    const lastSprint = getSprintLayoutV1_(
+      monthIndex,
+      LAYOUT.SPRINT.COUNT - 1
+    );
+
+    emptyRows.add(month.titleRow + 1);
+    emptyRows.add(month.kpiBottomGapRow);
+    emptyRows.add(month.summaryRow + 1);
+    emptyRows.add(month.summaryRow + 5);
+
+    for (
+      let row = month.summaryRow + 7;
+      row < month.firstSprintRow;
+      row++
+    ) {
+      emptyRows.add(row);
+    }
+
+    for (let sprintIndex = 0; sprintIndex < LAYOUT.SPRINT.COUNT; sprintIndex++) {
+      const sprint = getSprintLayoutV1_(monthIndex, sprintIndex);
+
+      emptyRows.add(sprint.sprintTop + 1);
+      emptyRows.add(sprint.headerRow - 1);
+      emptyRows.add(sprint.bottomGapRow);
+
+      thinRows.add(
+        sprint.sprintTop + LAYOUT.SPRINT.ROW_OFFSETS.SEPARATOR
+      );
+      thinRows.add(sprint.summaryGapRow);
+    }
+
+    const monthEndRow = month.titleRow + getMonthHeightV1_() - 1;
+    for (let row = lastSprint.bottomGapRow + 1; row <= monthEndRow; row++) {
+      emptyRows.add(row);
+    }
+  }
+
+  emptyRows.forEach(row => sheet.setRowHeight(row, emptyHeight));
+  thinRows.forEach(row => sheet.setRowHeight(row, thinHeight));
+}

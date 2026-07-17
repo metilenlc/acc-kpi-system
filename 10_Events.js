@@ -48,30 +48,40 @@ function onEdit(e) {
 }
 
 function isAnalyticsEditV1_(row, col) {
-  const hypStartRows = [78, 186, 294];
-  const sprintStep = 15;
-  const sprintCount = 5;
-  const hypRows = 4;
-
   const editableCols = [
-    3,   // Гипотеза
-    27,  // KPI
-    43,  // План KPI
-    48,  // Факт KPI
-    75,  // Статус
-    83   // Результат
+    LAYOUT.HYPOTHESIS.COLUMNS.NAME,
+    LAYOUT.HYPOTHESIS.COLUMNS.KPI,
+    LAYOUT.HYPOTHESIS.COLUMNS.PLAN,
+    LAYOUT.HYPOTHESIS.COLUMNS.FACT,
+    LAYOUT.HYPOTHESIS.COLUMNS.STATUS,
+    LAYOUT.HYPOTHESIS.COLUMNS.RESULT
   ];
 
   if (!editableCols.includes(col)) return false;
 
-  return hypStartRows.some(monthStartRow => {
-    for (let sprint = 0; sprint < sprintCount; sprint++) {
-      const startRow = monthStartRow + sprint * sprintStep;
-      const endRow = startRow + hypRows - 1;
+  for (
+    let monthIndex = 0;
+    monthIndex < LAYOUT.MONTH.COUNT;
+    monthIndex++
+  ) {
+    for (
+      let sprintIndex = 0;
+      sprintIndex < LAYOUT.SPRINT.COUNT;
+      sprintIndex++
+    ) {
+      const sprint = getSprintLayoutV1_(
+        monthIndex,
+        sprintIndex
+      );
 
-      if (row >= startRow && row <= endRow) return true;
+      if (
+        row >= sprint.firstHypRow &&
+        row <= sprint.lastHypRow
+      ) {
+        return true;
+      }
     }
+  }
 
-    return false;
-  });
+  return false;
 }

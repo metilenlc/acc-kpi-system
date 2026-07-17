@@ -12,6 +12,9 @@
  * • В работе
  * • Отложено
  * • Прогресс
+ * • Успешно
+ * • Частично успешно
+ * • Неуспешно
  *
  * Обновляет:
  * • Итоги спринта
@@ -21,14 +24,29 @@
 function updateSprintTotalsV1() {
   const sheet = getActiveAccountSheetV1_();
 
-  const COL_HYPOTHESIS = 3;
-  const COL_STATUS = 75;
+  const COL_HYPOTHESIS =
+    LAYOUT.HYPOTHESIS.COLUMNS.NAME;
+  const COL_STATUS =
+    LAYOUT.HYPOTHESIS.COLUMNS.STATUS;
+  const COL_RESULT =
+    LAYOUT.HYPOTHESIS.COLUMNS.RESULT;
 
-  const COL_TOTAL_FILLED = 5;
-  const COL_TOTAL_DONE = 23;
-  const COL_TOTAL_IN_PROGRESS = 41;
-  const COL_TOTAL_POSTPONED = 59;
-  const COL_TOTAL_PROGRESS = 77;
+  const COL_TOTAL_FILLED =
+    LAYOUT.SPRINT_SUMMARY.FILLED.START_COLUMN;
+  const COL_TOTAL_DONE =
+    LAYOUT.SPRINT_SUMMARY.DONE.START_COLUMN;
+  const COL_TOTAL_IN_PROGRESS =
+    LAYOUT.SPRINT_SUMMARY.IN_PROGRESS.START_COLUMN;
+  const COL_TOTAL_POSTPONED =
+    LAYOUT.SPRINT_SUMMARY.POSTPONED.START_COLUMN;
+  const COL_TOTAL_PROGRESS =
+    LAYOUT.SPRINT_SUMMARY.PROGRESS.START_COLUMN;
+  const COL_TOTAL_SUCCESS =
+    LAYOUT.SPRINT_SUMMARY.SUCCESS.START_COLUMN;
+  const COL_TOTAL_PARTIAL =
+    LAYOUT.SPRINT_SUMMARY.PARTIAL.START_COLUMN;
+  const COL_TOTAL_FAILED =
+    LAYOUT.SPRINT_SUMMARY.FAILED.START_COLUMN;
 
   const COL_HEADER_PERCENT_START = 11;
   const COL_HEADER_PERCENT_END = 14;
@@ -70,6 +88,18 @@ function updateSprintTotalsV1() {
         .getValues()
         .flat();
 
+      const results = sheet
+        .getRange(
+          sprintLayout.firstHypRow,
+          COL_RESULT,
+          sprintLayout.lastHypRow -
+            sprintLayout.firstHypRow +
+            1,
+          1
+        )
+        .getValues()
+        .flat();
+
       const filled = hypotheses.filter(
         value => String(value).trim() !== ''
       ).length;
@@ -83,7 +113,19 @@ function updateSprintTotalsV1() {
       ).length;
 
       const postponed = statuses.filter(
-        value => value === 'Отложено'
+        value => value === STATUS.POSTPONED
+      ).length;
+
+      const success = results.filter(
+        value => value === RESULT.SUCCESS
+      ).length;
+
+      const partial = results.filter(
+        value => value === RESULT.PARTIAL
+      ).length;
+
+      const failed = results.filter(
+        value => value === RESULT.FAILED
       ).length;
 
       const progress =
@@ -126,6 +168,18 @@ function updateSprintTotalsV1() {
         )
         .setValue(progress)
         .setNumberFormat('0%');
+
+      sheet
+        .getRange(sprintLayout.totalsRow, COL_TOTAL_SUCCESS)
+        .setValue(success);
+
+      sheet
+        .getRange(sprintLayout.totalsRow, COL_TOTAL_PARTIAL)
+        .setValue(partial);
+
+      sheet
+        .getRange(sprintLayout.totalsRow, COL_TOTAL_FAILED)
+        .setValue(failed);
 
       const percentRange = sheet.getRange(
         sprintLayout.progressRow,
@@ -183,17 +237,16 @@ function updateSprintTotalsV1() {
 function updateMonthTotalsV1() {
   const sheet = getActiveAccountSheetV1_();
 
-  const MONTHS = 3;
-  const MONTH_HEIGHT = 108;
-
-  const FIRST_MONTH_SUMMARY_ROW = 63;
-  const FIRST_MONTH_FIRST_SPRINT_TOTAL_ROW = 84;
-
-  const SPRINTS_PER_MONTH = 5;
-  const SPRINT_STEP = 15;
-
-  const COL_TOTAL = 5; // E
-  const COL_DONE = 23; // W
+  const COL_TOTAL =
+    LAYOUT.SPRINT_SUMMARY.FILLED.START_COLUMN;
+  const COL_DONE =
+    LAYOUT.SPRINT_SUMMARY.DONE.START_COLUMN;
+  const COL_SUCCESS =
+    LAYOUT.SPRINT_SUMMARY.SUCCESS.START_COLUMN;
+  const COL_PARTIAL =
+    LAYOUT.SPRINT_SUMMARY.PARTIAL.START_COLUMN;
+  const COL_FAILED =
+    LAYOUT.SPRINT_SUMMARY.FAILED.START_COLUMN;
 
   const COL_LEFT_VALUE = 19; // S
   const COL_RIGHT_VALUE = 39; // AM
@@ -201,27 +254,37 @@ function updateMonthTotalsV1() {
   const COL_PROGRESS_BAR_START = 23; // W
   const COL_PROGRESS_BAR_WIDTH = 20; // W:AP
 
-  const PARTIAL_SUCCESS_WEIGHT = 0.5;
-
-  for (let month = 0; month < MONTHS; month++) {
-    const summaryRow = FIRST_MONTH_SUMMARY_ROW + month * MONTH_HEIGHT;
-    const firstSprintTotalsRow = FIRST_MONTH_FIRST_SPRINT_TOTAL_ROW + month * MONTH_HEIGHT;
+  for (
+    let month = 0;
+    month < LAYOUT.MONTH.COUNT;
+    month++
+  ) {
+    const monthLayout = getMonthLayoutV1_(month);
+    const summaryRow = monthLayout.summaryValueRow;
 
     let total = 0;
     let done = 0;
+    let success = 0;
+    let partial = 0;
+    let failed = 0;
 
-    for (let sprint = 0; sprint < SPRINTS_PER_MONTH; sprint++) {
-      const totalsRow = firstSprintTotalsRow + sprint * SPRINT_STEP;
+    for (
+      let sprint = 0;
+      sprint < LAYOUT.SPRINT.COUNT;
+      sprint++
+    ) {
+      const totalsRow =
+        getSprintLayoutV1_(month, sprint).totalsRow;
 
       total += Number(sheet.getRange(totalsRow, COL_TOTAL).getValue()) || 0;
       done += Number(sheet.getRange(totalsRow, COL_DONE).getValue()) || 0;
+      success += Number(sheet.getRange(totalsRow, COL_SUCCESS).getValue()) || 0;
+      partial += Number(sheet.getRange(totalsRow, COL_PARTIAL).getValue()) || 0;
+      failed += Number(sheet.getRange(totalsRow, COL_FAILED).getValue()) || 0;
     }
 
-    const success = Number(sheet.getRange(summaryRow, COL_RIGHT_VALUE).getValue()) || 0;
-    const partial = Number(sheet.getRange(summaryRow + 1, COL_RIGHT_VALUE).getValue()) || 0;
-
     const conversion = done > 0
-      ? (success + partial * PARTIAL_SUCCESS_WEIGHT) / done
+      ? (success + partial * BUSINESS.PARTIAL_SUCCESS_WEIGHT) / done
       : 0;
 
     const progress = total > 0
@@ -236,14 +299,21 @@ function updateMonthTotalsV1() {
       .setValue(conversion)
       .setNumberFormat('0%');
 
-    const progressCell = sheet.getRange(summaryRow + 4, COL_LEFT_VALUE);
+    sheet.getRange(summaryRow, COL_RIGHT_VALUE).setValue(success);
+    sheet.getRange(summaryRow + 1, COL_RIGHT_VALUE).setValue(partial);
+    sheet.getRange(summaryRow + 2, COL_RIGHT_VALUE).setValue(failed);
+
+    const progressCell = sheet.getRange(
+      monthLayout.summaryProgressRow,
+      COL_LEFT_VALUE
+    );
 
     progressCell
       .setValue(progress)
       .setNumberFormat('0%');
 
     const progressBarRange = sheet.getRange(
-      summaryRow + 4,
+      monthLayout.summaryProgressRow,
       COL_PROGRESS_BAR_START,
       1,
       COL_PROGRESS_BAR_WIDTH
@@ -267,8 +337,6 @@ function updateQuarterTotalsV1() {
 
   const quarterSummaryRow = LAYOUT.QUARTER.SUMMARY.ROW;
 
-  const firstMonthSummaryRow = LAYOUT.MONTH.SUMMARY.FIRST_ROW;
-  const monthHeight = LAYOUT.MONTH.HEIGHT;
   const monthCount = LAYOUT.MONTH.COUNT;
 
   const colLeft = 19;     // S
@@ -287,7 +355,7 @@ function updateQuarterTotalsV1() {
 
   for (let month = 0; month < monthCount; month++) {
 
-    const row = firstMonthSummaryRow + month * monthHeight;
+    const row = getMonthLayoutV1_(month).summaryValueRow;
 
     total += Number(sheet.getRange(row, colLeft).getValue()) || 0;
     done += Number(sheet.getRange(row + 1, colLeft).getValue()) || 0;
@@ -346,17 +414,11 @@ function updateQuarterTotalsV1() {
 function updateKpiMonthTotalsV1() {
   const sheet = getActiveAccountSheetV1_();
 
-  const KPI_COUNT = 12;
+  const KPI_COUNT = LAYOUT.MONTH.KPI_COUNT;
 
-  const MONTH_HEIGHT = LAYOUT.MONTH.HEIGHT;
   const MONTH_COUNT = LAYOUT.MONTH.COUNT;
 
-  const MONTH1_KPI_FIRST_ROW = 48;
-  const MONTH1_FIRST_HYP_ROW = 78;
-
   const SPRINT_COUNT = LAYOUT.SPRINT.COUNT;
-  const SPRINT_STEP = LAYOUT.SPRINT.STEP;
-  const HYP_ROWS = LAYOUT.SPRINT.HYP_ROWS;
 
   const COL_KPI = 1;       // A
   const COL_PLAN = 33;     // AG
@@ -366,16 +428,19 @@ function updateKpiMonthTotalsV1() {
   const COL_BAR_START = 65; // BM
   const COL_BAR_WIDTH = 20;
 
-  const COL_HYP_KPI = 27;
-  const COL_HYP_FACT = 48;
+  const COL_HYP_KPI =
+    LAYOUT.HYPOTHESIS.COLUMNS.KPI;
+  const COL_HYP_FACT =
+    LAYOUT.HYPOTHESIS.COLUMNS.FACT;
 
   for (let month = 0; month < MONTH_COUNT; month++) {
-    const kpiFirstRow = MONTH1_KPI_FIRST_ROW + month * MONTH_HEIGHT;
-    const firstHypRow = MONTH1_FIRST_HYP_ROW + month * MONTH_HEIGHT;
+    const kpiFirstRow = getMonthLayoutV1_(month).firstKpiDataRow;
 
     for (let i = 0; i < KPI_COUNT; i++) {
       const kpiRow = kpiFirstRow + i;
-      const kpiName = sheet.getRange(kpiRow, COL_KPI).getValue();
+      const kpiName = String(
+        sheet.getRange(kpiRow, COL_KPI).getValue()
+      ).trim();
 
       if (!kpiName) {
         sheet.getRange(kpiRow, COL_FACT).clearContent();
@@ -386,10 +451,16 @@ function updateKpiMonthTotalsV1() {
       let factSum = 0;
 
       for (let sprint = 0; sprint < SPRINT_COUNT; sprint++) {
-        const hypStartRow = firstHypRow + sprint * SPRINT_STEP;
+        const sprintLayout = getSprintLayoutV1_(month, sprint);
 
-        for (let r = hypStartRow; r < hypStartRow + HYP_ROWS; r++) {
-          const hypKpi = sheet.getRange(r, COL_HYP_KPI).getValue();
+        for (
+          let r = sprintLayout.firstHypRow;
+          r <= sprintLayout.lastHypRow;
+          r++
+        ) {
+          const hypKpi = String(
+            sheet.getRange(r, COL_HYP_KPI).getValue()
+          ).trim();
 
           if (hypKpi === kpiName) {
             factSum += Number(sheet.getRange(r, COL_HYP_FACT).getValue()) || 0;
@@ -398,19 +469,15 @@ function updateKpiMonthTotalsV1() {
       }
 
       const plan = Number(sheet.getRange(kpiRow, COL_PLAN).getValue()) || 0;
-      const percent = plan > 0 ? factSum / plan : "";
+      const percent = plan > 0 ? factSum / plan : 0;
 
       sheet.getRange(kpiRow, COL_FACT).setValue(factSum);
 
       const percentCell = sheet.getRange(kpiRow, COL_PERCENT);
 
-      if (percent === "") {
-        percentCell.clearContent();
-      } else {
-        percentCell
-          .setValue(percent)
-          .setNumberFormat("0.00%");
-      }
+      percentCell
+        .setValue(percent)
+        .setNumberFormat("0.00%");
 
       const barRange = sheet.getRange(kpiRow, COL_BAR_START, 1, COL_BAR_WIDTH);
       insertProgressBarV1_(sheet, percentCell, barRange);
@@ -428,13 +495,9 @@ function updateKpiMonthTotalsV1() {
 function updateKpiQuarterTotalsV1() {
   const sheet = getActiveAccountSheetV1_();
 
-  const KPI_COUNT = 12;
+  const KPI_COUNT = LAYOUT.MONTH.KPI_COUNT;
 
   const QUARTER_FIRST_ROW = 21;
-  const MONTH1_FIRST_ROW = 48;
-
-  const MONTH_HEIGHT = LAYOUT.MONTH.HEIGHT;
-
   const COL_KPI = 1;       // A
   const COL_PLAN = 33;     // AG
   const COL_FACT = 47;     // AU
@@ -456,7 +519,7 @@ function updateKpiQuarterTotalsV1() {
     let factSum = 0;
 
     for (let month = 0; month < LAYOUT.MONTH.COUNT; month++) {
-      const monthRow = MONTH1_FIRST_ROW + month * MONTH_HEIGHT + i;
+      const monthRow = getMonthLayoutV1_(month).firstKpiDataRow + i;
       factSum += Number(sheet.getRange(monthRow, COL_FACT).getValue()) || 0;
     }
 
@@ -510,12 +573,21 @@ function recalculateAnalyticsV1() {
  */
 function calculateKpiMonthPlansV1() {
   const sheet = getActiveAccountSheetV1_();
+  distributeKpiPlansForSheetV1_(sheet);
+}
+
+/**
+ * Distributes quarterly KPI plans on an explicitly supplied account sheet.
+ * Does not activate the sheet or depend on the current UI selection.
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet
+ */
+function distributeKpiPlansForSheetV1_(sheet) {
+  if (!sheet) throw new Error('Не передан лист аккаунта для распределения KPI.');
   const kpiDict = getKpiDictionaryV1_();
 
-  const KPI_COUNT = 12;
-  const QUARTER_FIRST_ROW = 21;
-  const MONTH1_FIRST_ROW = 48;
-
+  const KPI_COUNT = LAYOUT.MONTH.KPI_COUNT;
+  const QUARTER_FIRST_ROW = LAYOUT.QUARTER.KPI.ROW + 1;
   const COL_KPI = 1;   // A
   const COL_PLAN = 33; // AG
 
@@ -552,8 +624,7 @@ function calculateKpiMonthPlansV1() {
 
     for (let month = 0; month < LAYOUT.MONTH.COUNT; month++) {
       const monthRow =
-        MONTH1_FIRST_ROW +
-        month * LAYOUT.MONTH.HEIGHT +
+        getMonthLayoutV1_(month).firstKpiDataRow +
         i;
 
       sheet.getRange(monthRow, COL_KPI).setValue(kpi);
@@ -682,19 +753,29 @@ function recalculateAnalyticsV1() {
  *
  * @param {number} quarterValue
  * @param {string} distribution
+ * @param {number} decimals
  * @return {number[]}
  */
-function calculateMonthPlanV1_(quarterValue, distribution) {
+function calculateMonthPlanV1_(quarterValue, distribution, decimals) {
 
   quarterValue = Number(quarterValue) || 0;
+  const roundValue = decimals === 2
+    ? value => roundTo_(value, 2)
+    : value => Math.round(value);
 
   switch (distribution) {
 
     case "GROWTH10": {
+      const weight1 = 1;
+      const weight2 = 1.1;
+      const weight3 = 1.21;
+      const totalWeight = weight1 + weight2 + weight3;
 
-      const m1 = round2_(quarterValue * 1.0 / 3.3);
-      const m2 = round2_(quarterValue * 1.1 / 3.3);
-      const m3 = round2_(quarterValue - m1 - m2);
+      const m1 = roundValue(quarterValue * weight1 / totalWeight);
+      const m2 = roundValue(quarterValue * weight2 / totalWeight);
+      const m3 = decimals === 2
+        ? roundTo_(quarterValue - m1 - m2, 2)
+        : quarterValue - m1 - m2;
 
       return [m1, m2, m3];
     }
@@ -702,9 +783,11 @@ function calculateMonthPlanV1_(quarterValue, distribution) {
     case "UNIFORM":
     default: {
 
-      const m1 = round2_(quarterValue / 3);
-      const m2 = round2_(quarterValue / 3);
-      const m3 = round2_(quarterValue - m1 - m2);
+      const m1 = roundValue(quarterValue / 3);
+      const m2 = roundValue(quarterValue / 3);
+      const m3 = decimals === 2
+        ? roundTo_(quarterValue - m1 - m2, 2)
+        : quarterValue - m1 - m2;
 
       return [m1, m2, m3];
     }
@@ -736,29 +819,41 @@ function round2_(value) {
 
 
 function isHypothesisEditV1_(row, col) {
-  const monthFirstHypRows = [57, 158, 259];
-
   const editableCols = [
-    3,   // Гипотеза
-    21,  // KPI
-    33,  // План
-    36,  // Факт
-    47,  // Исполнитель
-    59,  // Статус
-    65   // Результат
+    LAYOUT.HYPOTHESIS.COLUMNS.NAME,
+    LAYOUT.HYPOTHESIS.COLUMNS.KPI,
+    LAYOUT.HYPOTHESIS.COLUMNS.PLAN,
+    LAYOUT.HYPOTHESIS.COLUMNS.FACT,
+    LAYOUT.HYPOTHESIS.COLUMNS.MANAGER,
+    LAYOUT.HYPOTHESIS.COLUMNS.STATUS,
+    LAYOUT.HYPOTHESIS.COLUMNS.RESULT
   ];
 
   if (!editableCols.includes(col)) return false;
 
-  return monthFirstHypRows.some(monthStartRow => {
-    for (let sprint = 0; sprint < 5; sprint++) {
-      const firstHypRow = monthStartRow + sprint * 14;
-      if (row >= firstHypRow && row <= firstHypRow + 3) return true;
+  for (
+    let monthIndex = 0;
+    monthIndex < LAYOUT.MONTH.COUNT;
+    monthIndex++
+  ) {
+    for (
+      let sprintIndex = 0;
+      sprintIndex < LAYOUT.SPRINT.COUNT;
+      sprintIndex++
+    ) {
+      const sprint = getSprintLayoutV1_(
+        monthIndex,
+        sprintIndex
+      );
+
+      if (
+        row >= sprint.firstHypRow &&
+        row <= sprint.lastHypRow
+      ) {
+        return true;
+      }
     }
-    return false;
-  });
+  }
+
+  return false;
 }
-
-
-
-

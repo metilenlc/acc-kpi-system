@@ -1,31 +1,3 @@
-let KPI_DICTIONARY_V1 = null;
-
-/**
- * Возвращает активный рабочий лист аккаунта.
- */
-function getActiveAccountSheetV1_() {
-
-  const sheet = SpreadsheetApp
-    .getActiveSpreadsheet()
-    .getActiveSheet();
-
-  const name = sheet.getName();
-
-  if (name === "ACC_TEMPLATE") {
-    return sheet;
-  }
-
-  if (name === "ACCOUNTS") {
-    throw new Error("Откройте лист аккаунта.");
-  }
-
-  if (!name.startsWith("ACC_")) {
-    throw new Error(`Лист "${name}" не является листом аккаунта.`);
-  }
-
-  return sheet;
-}
-
 /**
  * Открывает лист справочника KPI.
  */
@@ -43,62 +15,6 @@ function openKpiDirectoryV1() {
 }
 
 /**
- * Загружает справочник KPI из листа 90_DIRECTORY.
- */
-function getKpiDictionaryV1_() {
-  if (KPI_DICTIONARY_V1) {
-    return KPI_DICTIONARY_V1;
-  }
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.DIRECTORY);
-
-  if (!sheet) {
-    throw new Error(`Лист "${SHEETS.DIRECTORY}" не найден.`);
-  }
-
-  const cfg = LAYOUT.DIRECTORY.KPI;
-  const lastRow = sheet.getLastRow();
-
-  if (lastRow < cfg.FIRST_ROW) {
-    return {};
-  }
-
-  const rowCount = lastRow - cfg.FIRST_ROW + 1;
-
-  const values = sheet
-    .getRange(
-      cfg.FIRST_ROW,
-      cfg.FIRST_COLUMN,
-      rowCount,
-      cfg.COLUMN_COUNT
-    )
-    .getValues();
-
-  const dict = {};
-
-  values.forEach(row => {
-    const kpi = String(row[0] || '').trim();
-
-    if (!kpi) return;
-
-    dict[kpi] = {
-      unit: row[1],
-      aggregation: row[2],
-      distribution: row[3] || 'UNIFORM',
-
-      k1: Number(row[4]) || 1,
-      k2: Number(row[5]) || 1,
-      k3: Number(row[6]) || 1
-    };
-  });
-
-  KPI_DICTIONARY_V1 = dict;
-
-  return dict;
-}
-
-/**
  * Высота одного блока спринта.
  */
 function getSprintStepV1_() {
@@ -109,20 +25,28 @@ function getSprintStepV1_() {
   );
 }
 
+/**
+ * Высота одного блока месяца.
+ */
+function getMonthHeightV1_() {
+  return (
+    LAYOUT.MONTH.SPRINT_OFFSET +
+    LAYOUT.SPRINT.COUNT * getSprintStepV1_() +
+    LAYOUT.MONTH.TRAILING_ROWS
+  );
+}
+
 //первый месяц
 function getMonthFirstRowV1_(monthIndex) {
   return (
     LAYOUT.MONTH.FIRST_ROW +
-    monthIndex * LAYOUT.MONTH.HEIGHT
+    monthIndex * getMonthHeightV1_()
   );
 }
 
 //первый KPI месяца
 function getMonthFirstKpiRowV1_(monthIndex) {
-  return (
-    getMonthFirstRowV1_(monthIndex) +
-    LAYOUT.MONTH.KPI_OFFSET
-  );
+  return getMonthLayoutV1_(monthIndex).firstKpiDataRow;
 }
 
 //первый спринт месяца
@@ -138,11 +62,10 @@ function getSprintFirstHypRowV1_(
   monthIndex,
   sprintIndex
 ) {
-  return (
-    getMonthFirstSprintRowV1_(monthIndex) +
-    sprintIndex * getSprintStepV1_() +
-    LAYOUT.SPRINT.HEADER_ROWS
-  );
+  return getSprintLayoutV1_(
+    monthIndex,
+    sprintIndex
+  ).firstHypRow;
 }
 
 //итоги спринта
@@ -150,14 +73,10 @@ function getSprintTotalsRowV1_(
   monthIndex,
   sprintIndex
 ) {
-  return (
-    getSprintFirstHypRowV1_(
-      monthIndex,
-      sprintIndex
-    ) +
-    LAYOUT.SPRINT.HYPOTHESIS_COUNT +
-    2
-  );
+  return getSprintLayoutV1_(
+    monthIndex,
+    sprintIndex
+  ).totalsRow;
 }
 
 //строка прогресс-бар
@@ -165,12 +84,10 @@ function getSprintProgressRowV1_(
   monthIndex,
   sprintIndex
 ) {
-  return (
-    getSprintFirstHypRowV1_(
-      monthIndex,
-      sprintIndex
-    ) - 3
-  );
+  return getSprintLayoutV1_(
+    monthIndex,
+    sprintIndex
+  ).progressRow;
 }
 
 /**
@@ -185,7 +102,23 @@ function getMonthLayoutV1_(monthIndex) {
 
   const monthRow =
     LAYOUT.MONTH.FIRST_ROW +
-    monthIndex * LAYOUT.MONTH.HEIGHT;
+    monthIndex * getMonthHeightV1_();
+
+  const kpiRow =
+    monthRow +
+    LAYOUT.MONTH.KPI_OFFSET;
+
+  const kpiHeaderRow =
+    kpiRow +
+    LAYOUT.MONTH.KPI_HEADER_OFFSET_FROM_KPI_TITLE;
+
+  const firstKpiDataRow =
+    kpiRow +
+    LAYOUT.MONTH.KPI_DATA_OFFSET_FROM_KPI_TITLE;
+
+  const lastKpiDataRow =
+    firstKpiDataRow +
+    LAYOUT.MONTH.KPI_COUNT - 1;
 
   return {
 
@@ -193,13 +126,30 @@ function getMonthLayoutV1_(monthIndex) {
 
     titleRow: monthRow,
 
-    kpiRow:
-      monthRow +
-      LAYOUT.MONTH.KPI_OFFSET,
+    kpiRow,
+
+    kpiHeaderRow,
+
+    firstKpiDataRow,
+
+    lastKpiDataRow,
+
+    kpiBottomGapRow:
+      lastKpiDataRow + 1,
 
     summaryRow:
       monthRow +
       LAYOUT.MONTH.SUMMARY_OFFSET,
+
+    summaryValueRow:
+      monthRow +
+      LAYOUT.MONTH.SUMMARY_OFFSET +
+      LAYOUT.MONTH.SUMMARY_ROW_OFFSETS.FIRST_VALUE,
+
+    summaryProgressRow:
+      monthRow +
+      LAYOUT.MONTH.SUMMARY_OFFSET +
+      LAYOUT.MONTH.SUMMARY_ROW_OFFSETS.PROGRESS,
 
     firstSprintRow:
       monthRow +
@@ -232,31 +182,40 @@ function getSprintLayoutV1_(monthIndex, sprintIndex) {
     firstHypRow +
     LAYOUT.SPRINT.HYPOTHESIS_COUNT - 1;
 
+  const summaryOffsets =
+    LAYOUT.SPRINT.SUMMARY_OFFSETS;
+
   return {
 
     sprintTop,
 
-    selectorRow: sprintTop + 2,
+    selectorRow:
+      sprintTop +
+      LAYOUT.SPRINT.ROW_OFFSETS.SELECTOR,
 
-    progressRow: sprintTop + 4,
+    progressRow:
+      sprintTop +
+      LAYOUT.SPRINT.ROW_OFFSETS.PROGRESS,
 
-    headerRow: sprintTop + 6,
+    headerRow:
+      sprintTop +
+      LAYOUT.SPRINT.ROW_OFFSETS.HYPOTHESIS_HEADER,
 
     firstHypRow,
 
     lastHypRow,
 
     summaryGapRow:
-      lastHypRow + 1,
+      lastHypRow + summaryOffsets.GAP,
 
     totalsHeaderRow:
-      lastHypRow + 2,
+      lastHypRow + summaryOffsets.HEADER,
 
     totalsRow:
-      lastHypRow + 3,
+      lastHypRow + summaryOffsets.VALUES,
 
     bottomGapRow:
-      lastHypRow + 4
+      lastHypRow + summaryOffsets.BOTTOM
 
   };
 

@@ -1,129 +1,346 @@
 // @ts-nocheck
-/*
-==================================================
-01_LayoutMap.gs
-==================================================
-*/
+
+/**
+ * ACC KPI Framework
+ * Module: Layout Map
+ *
+ * Единственный источник декларативного описания шаблона Google Sheets.
+ *
+ * Содержит:
+ * - базовые строки и столбцы;
+ * - размеры блоков;
+ * - смещения;
+ * - количество повторяющихся элементов;
+ * - структуру паспорта, KPI, месяцев, спринтов и гипотез.
+ *
+ * Не содержит:
+ * - SpreadsheetApp;
+ * - чтение или запись данных;
+ * - бизнес-расчёты;
+ * - вычисление координат конкретного месяца или спринта.
+ */
 
 const LAYOUT = {
-
-  QUARTER: {
-
-    KPI: {
-      ROW: 20
-    },
-
-    SUMMARY: {
-      ROW: 36
-    }
-
+  /**
+   * Общие параметры рабочего листа аккаунта.
+   */
+  SHEET: {
+    FIRST_ROW: 1,
+    FIRST_COLUMN: 1,
+    LAST_COLUMN: 90,
+    COLUMN_COUNT: 90,
   },
 
-  MONTH: {
-
-      COUNT: 3,
-
-      FIRST_ROW: 43,
-
-      HEIGHT: 108,
-
-      TITLE_HEIGHT: 1,
-
-      KPI_OFFSET: 5,
-
-      KPI_HEIGHT: 12,
-
-      SUMMARY_OFFSET: 17,
-
-      SUMMARY_HEIGHT: 6,
-
-      SPRINT_OFFSET: 35,
-
-    SUMMARY: {
-      FIRST_ROW: 63
+  STYLE: {
+    FONT: {
+      FAMILY: 'Calibri',
+      DEFAULT_SIZE: 12,
+      SHEET_TITLE_SIZE: 18,
+      QUARTER_MONTH_TITLE_SIZE: 16,
+      SECTION_TITLE_SIZE: 14,
+      SPRINT_TITLE_SIZE: 14,
     },
 
-    HYPOTHESIS: {
-      FIRST_ROW: 78
+    ROW_HEIGHTS: {
+      EMPTY: 28,
+      THIN: 6,
     },
-
-    SPRINT: {
-      FIRST_TOTAL_ROW: 84
-    }
-
   },
 
-  SPRINT: {
-
-    COUNT: 5,
-    HYPOTHESIS_COUNT: 4,
-    HEADER_ROWS: 7,
-    SUMMARY_ROWS: 4,
-   
-  },
-
+  /**
+   * Паспорт аккаунта.
+   */
   PASSPORT: {
+    COLUMN: 13,
+
+    FIRST_ROW: 4,
+    LAST_ROW: 9,
+
     ACCOUNT: "M4",
     SOCIAL: "M5",
     MANAGER: "M6",
     YEAR: "M7",
     QUARTER: "M8",
-    STATUS: "M9"
-  }, 
+    STATUS: "M9",
 
-  DIRECTORY: {
+    ROWS: {
+      ACCOUNT: 4,
+      SOCIAL: 5,
+      MANAGER: 6,
+      YEAR: 7,
+      QUARTER: 8,
+      STATUS: 9,
+    },
+  },
 
+  /**
+   * Квартальный блок.
+   */
+  QUARTER: {
     KPI: {
+      ROW: 20,
+    },
 
-      FIRST_ROW: 2,
-      FIRST_COLUMN: 18,   // R
-      COLUMN_COUNT: 8
+    KPI_COUNT: 12,
 
-    }
-    
+    SUMMARY: {
+      ROW: 36,
+    },
   },
 
+  /**
+   * Повторяющийся блок месяца.
+   */
+  MONTH: {
+    COUNT: 3,
+
+    FIRST_ROW: 44,
+
+    TITLE_HEIGHT: 1,
+
+    KPI_OFFSET: 2,
+    KPI_HEADER_OFFSET_FROM_KPI_TITLE: 1,
+    KPI_DATA_OFFSET_FROM_KPI_TITLE: 2,
+    KPI_COUNT: 12,
+    KPI_HEIGHT: 12,
+
+    SUMMARY_OFFSET: 17,
+    SUMMARY_HEIGHT: 6,
+
+    SUMMARY_ROW_OFFSETS: {
+      FIRST_VALUE: 2,
+      PROGRESS: 6,
+    },
+
+    SPRINT_OFFSET: 27,
+    TRAILING_ROWS: 6,
+  },
+
+  /**
+   * Повторяющийся блок спринта.
+   */
+  SPRINT: {
+    COUNT: 5,
+    HYPOTHESIS_COUNT: 6,
+
+    HEADER_ROWS: 7,
+    SUMMARY_ROWS: 4,
+
+    ROW_OFFSETS: {
+      TITLE: 0,
+      SELECTOR: 2,
+      SEPARATOR: 3,
+      PROGRESS: 4,
+      HYPOTHESIS_HEADER: 6,
+      FIRST_HYPOTHESIS: 7,
+    },
+
+    SUMMARY_OFFSETS: {
+      GAP: 1,
+      HEADER: 2,
+      VALUES: 3,
+      BOTTOM: 4,
+    },
+
+    ROW_HEIGHTS: {
+      TITLE: 32,
+      SELECTOR: 28,
+      SEPARATOR: 6,
+      PROGRESS: 28,
+      HYPOTHESIS_HEADER: 32,
+      HYPOTHESIS: 48,
+      SUMMARY_GAP: 6,
+      SUMMARY_HEADER: 26,
+      SUMMARY_VALUE: 28,
+      BOTTOM_GAP: 28,
+    },
+
+    SELECTOR: {
+      LABEL: {
+        START_COLUMN: 1,
+        END_COLUMN: 10,
+      },
+
+      VALUE: {
+        START_COLUMN: 11,
+        END_COLUMN: 36,
+      },
+    },
+
+    PROGRESS: {
+      LABEL: {
+        START_COLUMN: 1,
+        END_COLUMN: 10,
+      },
+
+      PERCENT: {
+        START_COLUMN: 11,
+        END_COLUMN: 14,
+      },
+
+      BAR: {
+        START_COLUMN: 15,
+        END_COLUMN: 36,
+      },
+    },
+
+    DATE: {
+      LABEL: {
+        START_COLUMN: 49,
+        END_COLUMN: 57,
+      },
+
+      VALUE: {
+        START_COLUMN: 58,
+        END_COLUMN: 72,
+      },
+    },
+  },
+
+  /**
+   * Таблица гипотез одного спринта.
+   */
+  HYPOTHESIS: {
+    COLUMN_COUNT: 90,
+
+    COLUMNS: {
+      CHECK: 1,
+      NAME: 3,
+      KPI: 27,
+      PLAN: 43,
+      FACT: 48,
+      EXPECTED_EFFECT: 53,
+      ACTUAL_EFFECT: 58,
+      MANAGER: 63,
+      STATUS: 75,
+      RESULT: 83,
+    },
+
+    FIELDS: [
+      {
+        KEY: "CHECK",
+        TITLE: "✓",
+        START_COLUMN: 1,
+        END_COLUMN: 2,
+      },
+      {
+        KEY: "NAME",
+        TITLE: "Гипотеза",
+        START_COLUMN: 3,
+        END_COLUMN: 26,
+      },
+      {
+        KEY: "KPI",
+        TITLE: "KPI",
+        START_COLUMN: 27,
+        END_COLUMN: 42,
+      },
+      {
+        KEY: "PLAN",
+        TITLE: "План",
+        START_COLUMN: 43,
+        END_COLUMN: 47,
+      },
+      {
+        KEY: "FACT",
+        TITLE: "Факт",
+        START_COLUMN: 48,
+        END_COLUMN: 52,
+      },
+      {
+        KEY: "EXPECTED_EFFECT",
+        TITLE: "Ожид.",
+        START_COLUMN: 53,
+        END_COLUMN: 57,
+      },
+      {
+        KEY: "ACTUAL_EFFECT",
+        TITLE: "Факт.эфф.",
+        START_COLUMN: 58,
+        END_COLUMN: 62,
+      },
+      {
+        KEY: "MANAGER",
+        TITLE: "Исполнитель",
+        START_COLUMN: 63,
+        END_COLUMN: 74,
+      },
+      {
+        KEY: "STATUS",
+        TITLE: "Статус",
+        START_COLUMN: 75,
+        END_COLUMN: 82,
+      },
+      {
+        KEY: "RESULT",
+        TITLE: "Результат",
+        START_COLUMN: 83,
+        END_COLUMN: 90,
+      },
+    ],
+  },
+
+  /**
+   * Сводка спринта.
+   */
   SPRINT_SUMMARY: {
+    FILLED: {
+      TITLE: "Заполнено",
+      START_COLUMN: 4,
+      END_COLUMN: 11,
+    },
 
-  FILLED: {
-    START_COL: 4,
-    END_COL: 11
+    DONE: {
+      TITLE: "Выполнено",
+      START_COLUMN: 15,
+      END_COLUMN: 22,
+    },
+
+    IN_PROGRESS: {
+      TITLE: "В работе",
+      START_COLUMN: 26,
+      END_COLUMN: 33,
+    },
+
+    POSTPONED: {
+      TITLE: "Отложено",
+      START_COLUMN: 37,
+      END_COLUMN: 44,
+    },
+
+    PROGRESS: {
+      TITLE: "Прогресс",
+      START_COLUMN: 50,
+      END_COLUMN: 57,
+    },
+
+    SUCCESS: {
+      TITLE: "Успешно",
+      START_COLUMN: 63,
+      END_COLUMN: 70,
+    },
+
+    PARTIAL: {
+      TITLE: "Частично успешно",
+      START_COLUMN: 73,
+      END_COLUMN: 80,
+    },
+
+    FAILED: {
+      TITLE: "Неуспешно",
+      START_COLUMN: 83,
+      END_COLUMN: 90,
+    },
   },
 
-  DONE: {
-    START_COL: 15,
-    END_COL: 22
+  /**
+   * Справочники.
+   */
+  DIRECTORY: {
+    KPI: {
+      FIRST_ROW: 2,
+      FIRST_COLUMN: 18,
+      COLUMN_COUNT: 7,
+    },
   },
-
-  IN_PROGRESS: {
-    START_COL: 26,
-    END_COL: 33
-  },
-
-  POSTPONED: {
-    START_COL: 37,
-    END_COL: 44
-  },
-
-  PROGRESS: {
-    START_COL: 50,
-    END_COL: 57
-  },
-
-  SUCCESS: {
-    START_COL: 63,
-    END_COL: 70
-  },
-
-  PARTIAL: {
-    START_COL: 73,
-    END_COL: 80
-  },
-
-  FAILED: {
-    START_COL: 83,
-    END_COL: 90
-  }
-},
-
 };

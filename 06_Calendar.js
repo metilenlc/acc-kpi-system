@@ -172,8 +172,10 @@ function updateSprintDatesOnEdit_(e) {
   const editedRow = e.range.getRow();
   const editedCol = e.range.getColumn();
 
-  const COL_SPRINT_SELECT = 11; // K
-  const COL_DATE_VALUE = 58;    // BF
+  const COL_SPRINT_SELECT =
+    LAYOUT.SPRINT.SELECTOR.VALUE.START_COLUMN;
+  const COL_DATE_VALUE =
+    LAYOUT.SPRINT.DATE.VALUE.START_COLUMN;
 
   if (editedCol !== COL_SPRINT_SELECT) return;
 
@@ -184,7 +186,11 @@ function updateSprintDatesOnEdit_(e) {
   const sprintName = e.range.getValue();
 
   const startDateCell = sheet.getRange(editedRow, COL_DATE_VALUE);       // BF строки выбора спринта
-  const endDateCell = sheet.getRange(editedRow + 2, COL_DATE_VALUE);     // BF строки "Дата окончания"
+  const endDateRow =
+    editedRow +
+    LAYOUT.SPRINT.ROW_OFFSETS.PROGRESS -
+    LAYOUT.SPRINT.ROW_OFFSETS.SELECTOR;
+  const endDateCell = sheet.getRange(endDateRow, COL_DATE_VALUE);
 
   if (!sprintName) {
     startDateCell.clearContent();
@@ -215,9 +221,23 @@ function updateSprintDatesOnEdit_(e) {
 }
 
 function getSprintInputRowsV1_() {
-  return [
-    73, 88, 103, 118, 133,
-    181, 196, 211, 226, 241,
-    289, 304, 319, 334, 349
-  ];
+  const rows = [];
+
+  for (
+    let monthIndex = 0;
+    monthIndex < LAYOUT.MONTH.COUNT;
+    monthIndex++
+  ) {
+    for (
+      let sprintIndex = 0;
+      sprintIndex < LAYOUT.SPRINT.COUNT;
+      sprintIndex++
+    ) {
+      rows.push(
+        getSprintLayoutV1_(monthIndex, sprintIndex).selectorRow
+      );
+    }
+  }
+
+  return rows;
 }

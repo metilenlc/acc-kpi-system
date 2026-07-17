@@ -5,6 +5,23 @@
 ==================================================
 */
 
+function getRowGroupTargetSheetV1_(targetSheet) {
+  if (targetSheet) return targetSheet;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const activeSheet = ss.getActiveSheet();
+  const activeName = activeSheet && activeSheet.getName();
+
+  if (activeName && activeName.startsWith('ACC_')) {
+    return activeSheet;
+  }
+
+  const template = ss.getSheetByName('ACC_TEMPLATE');
+  if (!template) throw new Error('Лист ACC_TEMPLATE не найден.');
+
+  return template;
+}
+
 /**
  * ==========================================
  * setupSprintRowGroupsV1
@@ -14,38 +31,32 @@
  * Создаёт внутренние группировки для спринтов.
  *
  * Логика:
- * • Заголовок СПРИНТ № остаётся видимым.
+ * • Заголовок СПРИНТ M.N остаётся видимым.
  * • Тело спринта группируется.
  * • Каждый спринт можно свернуть отдельно.
  */
-function setupSprintRowGroupsV1() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ACC_TEMPLATE');
+function setupSprintRowGroupsV1(targetSheet, silent) {
+  const sheet = getRowGroupTargetSheetV1_(targetSheet);
 
-  const FIRST_ROW = 1;
-  const LAST_ROW = sheet.getLastRow();
+  for (let monthIndex = 0; monthIndex < LAYOUT.MONTH.COUNT; monthIndex++) {
+    for (let sprintIndex = 0; sprintIndex < LAYOUT.SPRINT.COUNT; sprintIndex++) {
+      const sprint = getSprintLayoutV1_(monthIndex, sprintIndex);
+      const groupStartRow = sprint.sprintTop + 1;
+      const groupRowsCount = sprint.totalsRow - sprint.sprintTop;
 
-  const SPRINT_GROUP_START_OFFSET = 1;
-  const SPRINT_GROUP_ROWS_COUNT = 13;
-
-  //clearRowGroupsV1_();
-
-  for (let row = FIRST_ROW; row <= LAST_ROW; row++) {
-    const value = String(sheet.getRange(row, 1).getDisplayValue()).trim();
-
-    if (!value.startsWith('СПРИНТ №')) continue;
-
-    const groupStartRow = row + SPRINT_GROUP_START_OFFSET;
-
-    sheet
-      .getRange(groupStartRow, 1, SPRINT_GROUP_ROWS_COUNT, 1)
-      .shiftRowGroupDepth(1);
+      sheet
+        .getRange(groupStartRow, 1, groupRowsCount, 1)
+        .shiftRowGroupDepth(1);
+    }
   }
 
-  SpreadsheetApp.getActiveSpreadsheet().toast(
-    'Группировки спринтов созданы',
-    'ACC',
-    3
-  );
+  if (!silent) {
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'Группировки спринтов созданы',
+      'ACC',
+      3
+    );
+  }
 }
 
 /**
@@ -74,24 +85,17 @@ function clearRowGroupsV1() {
  * Назначение:
  * Внутренняя функция удаления группировок строк.
  */
-function clearRowGroupsV1_() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ACC_TEMPLATE');
-
-  const MAX_GROUP_DEPTH = 8;
-  const LAST_ROW = sheet.getMaxRows();
+function clearRowGroupsV1_(targetSheet) {
+  const sheet = getRowGroupTargetSheetV1_(targetSheet);
+  const maxDepth = 8;
+  const allRows = sheet.getRange(1, 1, sheet.getMaxRows(), 1);
 
   try {
     sheet.expandAllRowGroups();
-  } catch (e) {}
+  } catch (error) {}
 
-  for (let depth = 0; depth < MAX_GROUP_DEPTH; depth++) {
-    try {
-      sheet
-        .getRange(1, 1, LAST_ROW, 1)
-        .shiftRowGroupDepth(-1);
-    } catch (e) {
-      break;
-    }
+  for (let pass = 0; pass < maxDepth; pass++) {
+    allRows.shiftRowGroupDepth(-1);
   }
 }
 
@@ -108,51 +112,26 @@ function clearRowGroupsV1_() {
  * • KPI месяца и Итоги месяца сворачиваются одной группой.
  * • Спринты группируются отдельно другой функцией.
  */
-function setupMonthKpiSummaryGroupsV1() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ACC_TEMPLATE');
+function setupMonthKpiSummaryGroupsV1(targetSheet, silent) {
+  const sheet = getRowGroupTargetSheetV1_(targetSheet);
 
-  const FIRST_ROW = 1;
-  const LAST_ROW = sheet.getLastRow();
+  for (let monthIndex = 0; monthIndex < LAYOUT.MONTH.COUNT; monthIndex++) {
+    const month = getMonthLayoutV1_(monthIndex);
 
-  const GROUP_START_OFFSET = 1;
-  const GROUP_END_BEFORE_SPRINT = true;
-
-  for (let row = FIRST_ROW; row <= LAST_ROW; row++) {
-    const value = String(sheet.getRange(row, 1).getDisplayValue()).trim();
-
-    if (!value.startsWith('МЕСЯЦ ')) continue;
-
-    const monthTitleRow = row;
-    const groupStartRow = monthTitleRow + GROUP_START_OFFSET;
-
-    let firstSprintRow = null;
-
-    for (let scanRow = groupStartRow; scanRow <= LAST_ROW; scanRow++) {
-      const scanValue = String(sheet.getRange(scanRow, 1).getDisplayValue()).trim();
-
-      if (scanValue.startsWith('СПРИНТ №')) {
-        firstSprintRow = scanRow;
-        break;
-      }
-    }
-
-    if (!firstSprintRow) continue;
-
-    const groupEndRow = firstSprintRow - 2;
-    const groupRowsCount = groupEndRow - groupStartRow + 1;
-
-    if (groupRowsCount <= 0) continue;
-
-    sheet
-      .getRange(groupStartRow, 1, groupRowsCount, 1)
-      .shiftRowGroupDepth(1);
+    shiftRowGroupRangeV1_(
+      sheet,
+      month.titleRow + 1,
+      month.firstSprintRow - 3
+    );
   }
 
-  SpreadsheetApp.getActiveSpreadsheet().toast(
-    'Группировки KPI и итогов месяца созданы',
-    'ACC',
-    3
-  );
+  if (!silent) {
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'Группировки KPI и итогов месяца созданы',
+      'ACC',
+      3
+    );
+  }
 }
 
 /**
@@ -168,48 +147,32 @@ function setupMonthKpiSummaryGroupsV1() {
  * 2 — KPI + Итоги
  * 3 — Спринты
  */
-function setupMonthGroupsV1() {
+function setupMonthGroupsV1(targetSheet, silent) {
 
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ACC_TEMPLATE');
+  const sheet = getRowGroupTargetSheetV1_(targetSheet);
 
-  const FIRST_ROW = 1;
-  const LAST_ROW = sheet.getLastRow();
-
-  for (let row = FIRST_ROW; row <= LAST_ROW; row++) {
-
-    const value = String(sheet.getRange(row, 1).getDisplayValue()).trim();
-
-    if (!value.startsWith('МЕСЯЦ ')) continue;
-
-    const monthTitleRow = row;
-
-    let nextMonthRow = LAST_ROW + 1;
-
-    for (let r = monthTitleRow + 1; r <= LAST_ROW; r++) {
-
-      const text = String(sheet.getRange(r, 1).getDisplayValue()).trim();
-
-      if (text.startsWith('МЕСЯЦ ')) {
-        nextMonthRow = r;
-        break;
-      }
-    }
-
-    const groupStart = monthTitleRow + 1;
-    const groupRows = nextMonthRow - monthTitleRow - 2;
-
-    if (groupRows <= 0) continue;
+  for (
+    let monthIndex = 0;
+    monthIndex < LAYOUT.MONTH.COUNT;
+    monthIndex++
+  ) {
+    const month = getMonthLayoutV1_(monthIndex);
+    const groupStart = month.monthRow + 1;
+    const groupEnd = month.monthRow + getMonthHeightV1_() - 3;
+    const groupRows = groupEnd - groupStart + 1;
 
     sheet
       .getRange(groupStart, 1, groupRows, 1)
       .shiftRowGroupDepth(1);
   }
 
-  SpreadsheetApp.getActiveSpreadsheet().toast(
-    'Группировки месяцев созданы',
-    'ACC',
-    3
-  );
+  if (!silent) {
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'Группировки месяцев созданы',
+      'ACC',
+      3
+    );
+  }
 }
 
 /**
@@ -222,25 +185,32 @@ function setupMonthGroupsV1() {
  * • Квартальные KPI
  * • Итоги квартала
  *
- * Диапазон:
- * • строки 20–41
- * • зелёный заголовок "КВАРТАЛЬНЫЕ KPI" остаётся видимым
+ * Диапазон рассчитывается от строки под заголовком квартальных KPI
+ * до трёх строк перед заголовком первого месяца.
  */
-function setupQuarterKpiSummaryGroupV1() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ACC_TEMPLATE');
+function setupQuarterKpiSummaryGroupV1(targetSheet, silent) {
+  const sheet = getRowGroupTargetSheetV1_(targetSheet);
+  const quarterTitleRow = LAYOUT.QUARTER.KPI.ROW - 1;
+  const groupStartRow = quarterTitleRow + 1;
+  const groupEndRow = LAYOUT.MONTH.FIRST_ROW - 4;
 
-  const GROUP_START_ROW = 20;
-  const GROUP_ROWS_COUNT = 22; // 20–41
+  shiftRowGroupRangeV1_(sheet, groupStartRow, groupEndRow);
+
+  if (!silent) {
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'Группировка квартальных KPI и итогов создана',
+      'ACC',
+      3
+    );
+  }
+}
+
+function shiftRowGroupRangeV1_(sheet, startRow, endRow) {
+  if (endRow < startRow) return;
 
   sheet
-    .getRange(GROUP_START_ROW, 1, GROUP_ROWS_COUNT, 1)
+    .getRange(startRow, 1, endRow - startRow + 1, 1)
     .shiftRowGroupDepth(1);
-
-  SpreadsheetApp.getActiveSpreadsheet().toast(
-    'Группировка квартальных KPI и итогов создана',
-    'ACC',
-    3
-  );
 }
 
 /**
@@ -293,43 +263,33 @@ function getAllRowGroupsV1_(sheet) {
  */
 function getAccountRowGroupsV1_(sheet) {
   const allGroups = getAllRowGroupsV1_(sheet);
-
-  const sprintGroups = allGroups.filter(item =>
-    item.header.startsWith('СПРИНТ №')
+  const findGroup = (startRow, endRow) => allGroups.find(item =>
+    item.startRow === startRow && item.endRow === endRow
   );
-
-  const quarterGroups = allGroups.filter(item =>
-    item.header === 'КВАРТАЛЬНЫЕ KPI'
-  );
-
-  const monthCandidates = allGroups.filter(item =>
-    item.header.startsWith('МЕСЯЦ ')
-  );
-
+  const quarterGroups = [findGroup(
+    LAYOUT.QUARTER.KPI.ROW,
+    LAYOUT.MONTH.FIRST_ROW - 4
+  )].filter(Boolean);
   const monthGroups = [];
   const monthKpiGroups = [];
+  const sprintGroups = [];
 
-  const groupsByStartRow = {};
+  for (let monthIndex = 0; monthIndex < LAYOUT.MONTH.COUNT; monthIndex++) {
+    const month = getMonthLayoutV1_(monthIndex);
+    const monthEnd = month.monthRow + getMonthHeightV1_() - 3;
 
-  monthCandidates.forEach(item => {
-    if (!groupsByStartRow[item.startRow]) {
-      groupsByStartRow[item.startRow] = [];
+    const monthGroup = findGroup(month.monthRow + 1, monthEnd);
+    if (monthGroup) monthGroups.push(monthGroup);
+
+    const kpiGroup = findGroup(month.titleRow + 1, month.firstSprintRow - 3);
+    if (kpiGroup) monthKpiGroups.push(kpiGroup);
+
+    for (let sprintIndex = 0; sprintIndex < LAYOUT.SPRINT.COUNT; sprintIndex++) {
+      const sprint = getSprintLayoutV1_(monthIndex, sprintIndex);
+      const sprintGroup = findGroup(sprint.sprintTop + 1, sprint.totalsRow);
+      if (sprintGroup) sprintGroups.push(sprintGroup);
     }
-
-    groupsByStartRow[item.startRow].push(item);
-  });
-
-  Object.values(groupsByStartRow).forEach(items => {
-    items.sort((a, b) => a.numRows - b.numRows);
-
-    // Короткая группа — KPI и итоги месяца.
-    monthKpiGroups.push(items[0]);
-
-    // Длинная группа — весь месяц.
-    if (items.length > 1) {
-      monthGroups.push(items[items.length - 1]);
-    }
-  });
+  }
 
   return {
     allGroups,
@@ -339,33 +299,6 @@ function getAccountRowGroupsV1_(sheet) {
     sprintGroups
   };
 }
-
-//медленные
-/**
- * Гарантированно сворачивает все группы всех уровней.
- */
-function collapseAllAccountGroupsV1() {
-  const sheet = getActiveAccountSheetV1_();
-  const { allGroups } = getAccountRowGroupsV1_(sheet);
-
-  allGroups
-    .sort((a, b) => b.depth - a.depth)
-    .forEach(item => item.group.collapse());
-}
-
-
-/**
- * Гарантированно разворачивает все группы всех уровней.
- */
-function expandAllAccountGroupsV1() {
-  const sheet = getActiveAccountSheetV1_();
-  const { allGroups } = getAccountRowGroupsV1_(sheet);
-
-  allGroups
-    .sort((a, b) => a.depth - b.depth)
-    .forEach(item => item.group.expand());
-}
-
 
 /**
  * Разворачивает только общие группы месяцев.
@@ -430,7 +363,7 @@ function expandMonthKpiKeepSprintsV1() {
  * Свернуть абсолютно все группы.
  */
 function collapseAllAccountGroupsV1() {
-  const sheet = getActiveAccountSheetV1_();
+  const sheet = getRowGroupTargetSheetV1_();
 
   // Уровень 0 — все группы свёрнуты
   sheet.expandRowGroupsUpToDepth(0);
@@ -441,7 +374,7 @@ function collapseAllAccountGroupsV1() {
  * Развернуть абсолютно все группы.
  */
 function expandAllAccountGroupsV1() {
-  const sheet = getActiveAccountSheetV1_();
+  const sheet = getRowGroupTargetSheetV1_();
 
   // Заведомо больше фактического количества уровней
   sheet.expandRowGroupsUpToDepth(8);
@@ -471,17 +404,21 @@ function showMonthKpiOnlyV1() {
   sheet.expandRowGroupsUpToDepth(1);
 
   // Затем точечно открываем KPI и итоги каждого месяца
-  const monthKpiRanges = [
-    '45:69',
-    '153:177',
-    '261:285'
-  ];
+  for (
+    let monthIndex = 0;
+    monthIndex < LAYOUT.MONTH.COUNT;
+    monthIndex++
+  ) {
+    const month = getMonthLayoutV1_(monthIndex);
+    const startRow = month.monthRow + 1;
+    const endRow = month.firstSprintRow - 2;
 
-  monthKpiRanges.forEach(a1 => {
     try {
-      sheet.getRange(a1).expandGroups();
+      sheet
+        .getRange(startRow, 1, endRow - startRow + 1, 1)
+        .expandGroups();
     } catch (error) {}
-  });
+  }
 }
 
 
@@ -493,7 +430,14 @@ function expandQuarterKpiV1() {
   const sheet = getActiveAccountSheetV1_();
 
   try {
-    sheet.getRange('20:41').expandGroups();
+    sheet
+      .getRange(
+        LAYOUT.QUARTER.KPI.ROW,
+        1,
+        LAYOUT.MONTH.FIRST_ROW - LAYOUT.QUARTER.KPI.ROW,
+        1
+      )
+      .expandGroups();
   } catch (error) {}
 }
 
@@ -516,18 +460,31 @@ function showWorkViewV1() {
 
   // Открыть квартальные KPI
   try {
-    sheet.getRange("20:41").expandGroups();
+    sheet
+      .getRange(
+        LAYOUT.QUARTER.KPI.ROW,
+        1,
+        LAYOUT.MONTH.FIRST_ROW - LAYOUT.QUARTER.KPI.ROW,
+        1
+      )
+      .expandGroups();
   } catch (e) {}
 
   // Открыть KPI месяцев
-  [
-    "45:69",
-    "153:177",
-    "261:285"
-  ].forEach(r => {
+  for (
+    let monthIndex = 0;
+    monthIndex < LAYOUT.MONTH.COUNT;
+    monthIndex++
+  ) {
+    const month = getMonthLayoutV1_(monthIndex);
+    const startRow = month.monthRow + 1;
+    const endRow = month.firstSprintRow - 2;
+
     try {
-      sheet.getRange(r).expandGroups();
+      sheet
+        .getRange(startRow, 1, endRow - startRow + 1, 1)
+        .expandGroups();
     } catch (e) {}
-  });
+  }
 
 }
